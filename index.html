@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
   <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="onigiriya_kanatake_192.png">
+  <link rel="apple-touch-icon" href="https://kimura-jane.github.io/kanatae-app/onigiriya_kanatake_192.png">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,8 +23,10 @@
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
 
   <link rel="stylesheet" href="style.css">
-  <script src="spots-all.js" defer></script>
-  <script src="spots.js" defer></script>
+
+  <!-- 既存リポジトリから直接読み込み -->
+  <script src="https://kimura-jane.github.io/kanatae-app/spots-all.js" defer></script>
+  <script src="https://kimura-jane.github.io/kanatae-app/spots.js" defer></script>
 </head>
 <body>
 
@@ -33,7 +35,7 @@
   <!-- ===== ヘッダー ===== -->
   <header class="header">
     <h1>
-      <img src="icon.png" alt="" class="header-icon">
+      <img src="https://kimura-jane.github.io/kanatae-app/icon.png" alt="" class="header-icon">
       おにぎり屋かなたけ
     </h1>
   </header>
@@ -55,9 +57,7 @@
       <div class="section-card">
         <h2 class="section-title">⭐ 来店ポイント</h2>
         <div class="stamp-card">
-          <div class="stamp-grid" id="stamp-grid">
-            <!-- JSで20個生成 -->
-          </div>
+          <div class="stamp-grid" id="stamp-grid"></div>
           <p class="stamp-count">現在 <span id="stamp-current">0</span> / 20 ポイント</p>
           <p class="stamp-reward">20ポイントで「女神のほほえみ」プレゼント！</p>
           <button class="btn btn-primary" id="redeem-btn" style="display:none;">🎁 特典を受け取る</button>
@@ -93,7 +93,7 @@
       <div class="section-card">
         <h2 class="section-title">🍙 メニュー</h2>
         <div class="menu-container">
-          <img src="IMG_7605.jpeg" alt="おにぎり屋かなたけ メニュー" class="menu-image">
+          <img src="https://kimura-jane.github.io/kanatae-app/IMG_7605.jpeg" alt="おにぎり屋かなたけ メニュー" class="menu-image">
         </div>
       </div>
 
