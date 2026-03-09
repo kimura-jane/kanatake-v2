@@ -1,6 +1,7 @@
 // ===== 設定 =====
 const API_BASE = "https://kanatake-api.la-kofu.workers.dev";
 const PUSH_API_BASE = "https://kanatae-push.la-kofu.workers.dev";
+const ASSETS_BASE = "https://kimura-jane.github.io/kanatae-app";
 
 // ===== 端末ID =====
 function getDeviceId() {
@@ -23,8 +24,7 @@ let markersArray = [];
 
 navBtns.forEach(btn => {
   btn.addEventListener("click", () => {
-    const page = btn.dataset.page;
-    switchPage(page);
+    switchPage(btn.dataset.page);
   });
 });
 
@@ -33,53 +33,36 @@ function switchPage(page) {
   navBtns.forEach(b => b.classList.toggle("active", b.dataset.page === page));
   pages.forEach(p => p.classList.toggle("active", p.id === `page-${page}`));
 
-  // ホーム表示時にマップ初期化
   if (page === "home" && !mapInitialized) {
     setTimeout(() => { initMap(); mapInitialized = true; }, 100);
   }
   if (page === "home" && mapInstance) {
     setTimeout(() => mapInstance.invalidateSize(), 100);
   }
-
-  // 口コミタブ開いたら読み込み
   if (page === "reviews") loadReviews();
 
-  // ページトップにスクロール
   const pageEl = document.getElementById(`page-${page}`);
   if (pageEl) pageEl.scrollTop = 0;
 }
 
 // ===== 初期化 =====
 document.addEventListener("DOMContentLoaded", async () => {
-  // 端末登録
   await registerDevice();
-
-  // 端末ID表示
   document.getElementById("device-id-display").textContent = DEVICE_ID;
 
-  // スタンプ初期化
   initStampGrid();
   await loadPoints();
-
-  // お知らせ読み込み
   await loadNotices();
 
-  // カレンダー初期化
   initCalendarRangeAndStartMonth();
   renderCalendar();
 
-  // マップ初期化（ホームが表示中）
   setTimeout(() => {
     if (!mapInitialized) { initMap(); mapInitialized = true; }
   }, 300);
 
-  // 初回クーポン状態チェック
   await checkWelcomeCoupon();
-
-  // 通知設定UI
   syncPlaceUI();
-
-  // SW登録
   registerSW().catch(() => {});
 });
 
@@ -145,11 +128,9 @@ function updateStampUI(points) {
   dots.forEach((dot, i) => {
     dot.classList.toggle("filled", i < points);
   });
-  const redeemBtn = document.getElementById("redeem-btn");
-  redeemBtn.style.display = points >= 20 ? "block" : "none";
+  document.getElementById("redeem-btn").style.display = points >= 20 ? "block" : "none";
 }
 
-// ポイント特典交換
 document.getElementById("redeem-btn").addEventListener("click", async () => {
   if (!confirm("20ポイントで「女神のほほえみ」と交換しますか？\nポイントは0にリセットされます。")) return;
   try {
@@ -170,7 +151,7 @@ document.getElementById("redeem-btn").addEventListener("click", async () => {
   }
 });
 
-// ===== カレンダー（既存ロジック流用） =====
+// ===== カレンダー =====
 let currentYear, currentMonth;
 let minYM = null, maxYM = null;
 
@@ -294,7 +275,6 @@ function renderCalendar() {
     });
   });
 
-  // ナビボタン無効化
   const prevBtn = document.getElementById("prevMonth");
   const nextBtn = document.getElementById("nextMonth");
   if (minYM && maxYM) {
@@ -353,9 +333,11 @@ function initMap() {
     attribution: "© OSM © CARTO"
   }).addTo(mapInstance);
 
-  const icon = L.icon({ iconUrl: "icon.png", iconSize: [40, 40], iconAnchor: [20, 30], popupAnchor: [0, -26] });
+  const icon = L.icon({
+    iconUrl: `${ASSETS_BASE}/icon.png`,
+    iconSize: [40, 40], iconAnchor: [20, 30], popupAnchor: [0, -26]
+  });
 
-  // 今月のspots（spots.js）を使う
   const spots = Array.isArray(window.spots) ? window.spots : [];
   const list = document.getElementById("spotList");
   list.innerHTML = "";
@@ -486,12 +468,11 @@ document.getElementById("qr-start-btn").addEventListener("click", async () => {
       { facingMode: "environment" },
       { fps: 10, qrbox: { width: 250, height: 250 } },
       async (decodedText) => {
-        // QR読み取り成功 → カメラ停止
         try { await html5QrCode.stop(); } catch (e) {}
         html5QrCode = null;
         await processCheckin(decodedText);
       },
-      () => {} // errorCallback（無視）
+      () => {}
     );
   } catch (e) {
     resultEl.className = "result-text error";
@@ -504,14 +485,11 @@ async function processCheckin(qrText) {
   resultEl.className = "result-text loading";
   resultEl.textContent = "📍 位置情報を確認中…";
 
-  // 位置情報取得
   let latitude, longitude;
   try {
     const pos = await new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(resolve, reject, {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
+        enableHighAccuracy: true, timeout: 10000, maximumAge: 0
       });
     });
     latitude = pos.coords.latitude;
@@ -522,7 +500,6 @@ async function processCheckin(qrText) {
     return;
   }
 
-  // チェックインAPI
   resultEl.textContent = "⏳ チェックイン中…";
   try {
     const res = await fetch(`${API_BASE}/checkin`, {
@@ -578,12 +555,10 @@ async function loadReviews() {
   }
 }
 
-// 文字数カウント
 document.getElementById("review-body").addEventListener("input", (e) => {
   document.getElementById("review-char-current").textContent = e.target.value.length;
 });
 
-// 口コミ投稿
 document.getElementById("review-submit-btn").addEventListener("click", async () => {
   const nickname = document.getElementById("review-nickname").value.trim();
   const body = document.getElementById("review-body").value.trim();
@@ -619,7 +594,7 @@ document.getElementById("review-submit-btn").addEventListener("click", async () 
   }
 });
 
-// ===== 通知設定（既存流用） =====
+// ===== 通知設定 =====
 function syncPlaceUI() {
   const all = document.getElementById("place_all").checked;
   document.querySelectorAll("#placeList .settings-option").forEach(opt => {
