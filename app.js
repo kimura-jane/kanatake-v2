@@ -366,6 +366,39 @@ function initMap() {
   if (existing.length) mapInstance.fitBounds(L.featureGroup(existing).getBounds().pad(0.15));
 }
 
+// ===== 今日の出店場所を探す =====
+function getTodaySpot() {
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const day = now.getDate();
+
+  // まず spots.js（今月マップ用）から探す
+  if (Array.isArray(window.spots)) {
+    for (const s of window.spots) {
+      if (!s.lat || !s.lng) continue;
+      const m = (s.date || "").match(/(\d+)\/(\d+)/);
+      if (m && parseInt(m[1], 10) === month && parseInt(m[2], 10) === day) {
+        return s;
+      }
+    }
+  }
+
+  // 次に spotsAllByYear から探す
+  if (window.spotsAllByYear) {
+    const year = now.getFullYear();
+    const arr = window.spotsAllByYear[year] || [];
+    for (const s of arr) {
+      if (!s.lat || !s.lng) continue;
+      const m = (s.date || "").match(/(\d+)\/(\d+)/);
+      if (m && parseInt(m[1], 10) === month && parseInt(m[2], 10) === day) {
+        return s;
+      }
+    }
+  }
+
+  return null;
+}
+
 // ===== 初回クーポン =====
 async function checkWelcomeCoupon() {
   try {
@@ -483,7 +516,17 @@ document.getElementById("qr-start-btn").addEventListener("click", async () => {
 async function processCheckin(qrText) {
   const resultEl = document.getElementById("qr-result");
   resultEl.className = "result-text loading";
-  resultEl.textContent = "📍 位置情報を確認中…";
+  resultEl.textContent = "📍 今日の出店場所を確認中…";
+
+  // spots.js から今日の出店場所を探す
+  const todaySpot = getTodaySpot();
+  if (!todaySpot) {
+    resultEl.className = "result-text error";
+    resultEl.textContent = "❌ 今日の出店データが見つかりません";
+    return;
+  }
+
+  resultEl.textContent = "📍 位置情報を取得中…";
 
   let latitude, longitude;
   try {
@@ -505,7 +548,14 @@ async function processCheckin(qrText) {
     const res = await fetch(`${API_BASE}/checkin`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ device_id: DEVICE_ID, latitude, longitude })
+      body: JSON.stringify({
+        device_id: DEVICE_ID,
+        latitude,
+        longitude,
+        spot_lat: todaySpot.lat,
+        spot_lng: todaySpot.lng,
+        spot_name: todaySpot.name
+      })
     });
     const data = await res.json();
     if (data.ok) {
@@ -516,7 +566,7 @@ async function processCheckin(qrText) {
       resultEl.className = "result-text error";
       const msgs = {
         "already checked in today": "本日はすでにチェックイン済みです",
-        "not within 500m of any location": `お店から離れすぎています（${data.distance || "?"}m）`
+        "not within 500m of today's location": `お店から離れすぎています（${data.distance || "?"}m）`
       };
       resultEl.textContent = "❌ " + (msgs[data.error] || data.error);
     }
