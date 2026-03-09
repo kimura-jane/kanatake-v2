@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>かなたけ管理画面</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Kosugi Maru", sans-serif; background: #f5f5f5; color: #333; padding: 16px; }
+    .container { max-width: 600px; margin: 0 auto; }
+    h1 { text-align: center; color: #f5a623; margin-bottom: 20px; font-size: 20px; }
+    h2 { font-size: 16px; color: #f5a623; margin: 20px 0 10px; padding-bottom: 6px; border-bottom: 2px solid #fff3d0; }
+    .card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .btn { padding: 10px 16px; border: none; border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: #f5a623; color: white; }
+    .btn-danger { background: #e74c3c; color: white; }
+    .btn-success { background: #27ae60; color: white; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    input, textarea { width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-family: inherit; font-size: 13px; margin-bottom: 8px; }
+    textarea { min-height: 80px; resize: vertical; }
+    .login-area { text-align: center; padding: 40px 0; }
+    .login-area input { max-width: 300px; }
+    .item { padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
+    .item:last-child { border-bottom: none; }
+    .item-meta { font-size: 11px; color: #999; }
+    .item-body { margin: 6px 0; line-height: 1.6; white-space: pre-wrap; }
+    .item-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+    .badge-pending { background: #fff3cd; color: #856404; }
+    .badge-approved { background: #d4edda; color: #155724; }
+    .badge-used { background: #f8d7da; color: #721c24; }
+    .badge-unused { background: #d4edda; color: #155724; }
+    .tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+    .tab-btn { padding: 8px 14px; border: 2px solid #ddd; border-radius: 8px; background: white; font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .tab-btn.active { border-color: #f5a623; background: #fff9e6; color: #f5a623; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .msg { padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 700; margin: 8px 0; text-align: center; }
+    .msg-success { background: #d4edda; color: #155724; }
+    .msg-error { background: #f8d7da; color: #721c24; }
+    #admin-content { display: none; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>🍙 かなたけ管理画面</h1>
+
+  <!-- ログイン -->
+  <div id="login-area" class="login-area">
+    <p style="margin-bottom: 12px;">管理パスワードを入力してください</p>
+    <input type="password" id="admin-password" placeholder="パスワード">
+    <br><br>
+    <button class="btn btn-primary" id="login-btn">ログイン</button>
+    <p id="login-msg"></p>
+  </div>
+
+  <!-- 管理コンテンツ -->
+  <div id="admin-content">
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="reviews">💬 口コミ</button>
+      <button class="tab-btn" data-tab="coupons">🎫 クーポン</button>
+      <button class="tab-btn" data-tab="notices">📢 お知らせ</button>
+      <button class="tab-btn" data-tab="locations">📍 出店場所</button>
+    </div>
+
+    <!-- 口コミ管理 -->
+    <div class="tab-content active" id="tab-reviews">
+      <div class="card" id="reviews-container">
+        <p>読み込み中…</p>
+      </div>
+    </div>
+
+    <!-- クーポン管理 -->
+    <div class="tab-content" id="tab-coupons">
+      <div class="card">
+        <h2>クーポン発行</h2>
+        <input type="text" id="coupon-prize" placeholder="特典名（例: おにぎり1個）">
+        <button class="btn btn-primary" id="coupon-create-btn">発行する</button>
+        <p id="coupon-create-msg"></p>
+      </div>
+      <div class="card" id="coupons-list-container">
+        <h2>発行済みクーポン</h2>
+        <p>読み込み中…</p>
+      </div>
+    </div>
+
+    <!-- お知らせ管理 -->
+    <div class="tab-content" id="tab-notices">
+      <div class="card">
+        <h2>お知らせ投稿</h2>
+        <textarea id="notice-body" placeholder="お知らせ内容"></textarea>
+        <button class="btn btn-primary" id="notice-create-btn">投稿する</button>
+        <p id="notice-create-msg"></p>
+      </div>
+      <div class="card" id="notices-list-container">
+        <h2>お知らせ一覧</h2>
+        <p>読み込み中…</p>
+      </div>
+    </div>
+
+    <!-- 出店場所管理 -->
+    <div class="tab-content" id="tab-locations">
+      <div class="card">
+        <h2>出店場所追加</h2>
+        <input type="text" id="loc-name" placeholder="場所名">
+        <input type="number" id="loc-lat" placeholder="緯度（例: 35.8520）" step="any">
+        <input type="number" id="loc-lng" placeholder="経度（例: 139.7247）" step="any">
+        <button class="btn btn-primary" id="loc-create-btn">追加する</button>
+        <p id="loc-create-msg"></p>
+      </div>
+      <div class="card" id="locations-list-container">
+        <h2>登録済み出店場所</h2>
+        <p>読み込み中…</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_BASE = "https://kanatake-api.la-kofu.workers.dev";
+let AUTH_TOKEN = "";
+
+function authHeaders() {
+  return { "Content-Type": "application/json", "Authorization": `Bearer ${AUTH_TOKEN}` };
+}
+
+// ===== ログイン =====
+document.getElementById("login-btn").addEventListener("click", async () => {
+  const pw = document.getElementById("admin-password").value.trim();
+  if (!pw) return;
+  AUTH_TOKEN = pw;
+  try {
+    const res = await fetch(`${API_BASE}/admin/reviews`, { headers: authHeaders() });
+    if (res.status === 401) {
+      document.getElementById("login-msg").innerHTML = '<span class="msg msg-error">パスワードが違います</span>';
+      AUTH_TOKEN = "";
+      return;
+    }
+    document.getElementById("login-area").style.display = "none";
+    document.getElementById("admin-content").style.display = "block";
+    loadAdminReviews();
+    loadAdminCoupons();
+    loadAdminNotices();
+    loadAdminLocations();
+  } catch (e) {
+    document.getElementById("login-msg").innerHTML = '<span class="msg msg-error">通信エラー</span>';
+  }
+});
+
+// パスワードEnterキー
+document.getElementById("admin-password").addEventListener("keydown", e => {
+  if (e.key === "Enter") document.getElementById("login-btn").click();
+});
+
+// ===== タブ =====
+document.querySelectorAll(".tabs .tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tabs .tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById(`tab-${btn.dataset.tab}`).classList.add("active");
+  });
+});
+
+// ===== 口コミ管理 =====
+async function loadAdminReviews() {
+  const el = document.getElementById("reviews-container");
+  try {
+    const res = await fetch(`${API_BASE}/admin/reviews`, { headers: authHeaders() });
+    const data = await res.json();
+    if (!data.reviews || !data.reviews.length) { el.innerHTML = "<p>口コミなし</p>"; return; }
+    el.innerHTML = data.reviews.map(r => `
+      <div class="item" id="review-${r.id}">
+        <div class="item-meta">
+          #${r.id} | ${r.nickname} | ${r.created_at || ""}
+          <span class="badge ${r.approved ? "badge-approved" : "badge-pending"}">${r.approved ? "承認済" : "未承認"}</span>
+        </div>
+        <div class="item-body">${esc(r.body)}</div>
+        ${r.owner_reply ? `<div style="background:#fff9e6;padding:8px;border-radius:6px;margin-top:4px;font-size:12px;"><b>返信:</b> ${esc(r.owner_reply)}</div>` : ""}
+        <div class="item-actions">
+          ${!r.approved ? `<button class="btn btn-success btn-sm" onclick="approveReview(${r.id})">承認</button>` : ""}
+          <button class="btn btn-primary btn-sm" onclick="replyReview(${r.id})">返信</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteReview(${r.id})">削除</button>
+        </div>
+      </div>
+    `).join("");
+  } catch (e) { el.innerHTML = "<p>読み込み失敗</p>"; }
+}
+
+async function approveReview(id) {
+  await fetch(`${API_BASE}/admin/reviews/${id}/approve`, { method: "POST", headers: authHeaders() });
+  loadAdminReviews();
+}
+
+async function replyReview(id) {
+  const reply = prompt("返信を入力:");
+  if (!reply) return;
+  await fetch(`${API_BASE}/admin/reviews/${id}/reply`, {
+    method: "POST", headers: authHeaders(),
+    body: JSON.stringify({ reply })
+  });
+  loadAdminReviews();
+}
+
+async function deleteReview(id) {
+  if (!confirm("この口コミを削除しますか？")) return;
+  await fetch(`${API_BASE}/admin/reviews/${id}`, { method: "DELETE", headers: authHeaders() });
+  loadAdminReviews();
+}
+
+// ===== クーポン管理 =====
+document.getElementById("coupon-create-btn").addEventListener("click", async () => {
+  const prize = document.getElementById("coupon-prize").value.trim();
+  const msgEl = document.getElementById("coupon-create-msg");
+  if (!prize) { msgEl.innerHTML = '<span class="msg msg-error">特典名を入力</span>'; return; }
+  try {
+    const res = await fetch(`${API_BASE}/admin/coupons`, {
+      method: "POST", headers: authHeaders(),
+      body: JSON.stringify({ prize })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      msgEl.innerHTML = `<span class="msg msg-success">発行完了: ${data.code}</span>`;
+      document.getElementById("coupon-prize").value = "";
+      loadAdminCoupons();
+    }
+  } catch (e) { msgEl.innerHTML = '<span class="msg msg-error">通信エラー</span>'; }
+});
+
+async function loadAdminCoupons() {
+  const el = document.getElementById("coupons-list-container");
+  try {
+    const res = await fetch(`${API_BASE}/admin/coupons`, { headers: authHeaders() });
+    const data = await res.json();
+    if (!data.coupons || !data.coupons.length) { el.innerHTML = "<h2>発行済みクーポン</h2><p>なし</p>"; return; }
+    el.innerHTML = "<h2>発行済みクーポン</h2>" + data.coupons.map(c => `
+      <div class="item">
+        <strong>${c.code}</strong> → ${esc(c.prize)}
+        <span class="badge ${c.used ? "badge-used" : "badge-unused"}">${c.used ? "使用済" : "未使用"}</span>
+        <div class="item-meta">${c.created_at || ""} ${c.used_by_device ? "| 使用: " + c.used_by_device : ""}</div>
+      </div>
+    `).join("");
+  } catch (e) { el.innerHTML = "<h2>発行済みクーポン</h2><p>読み込み失敗</p>"; }
+}
+
+// ===== お知らせ管理 =====
+document.getElementById("notice-create-btn").addEventListener("click", async () => {
+  const body = document.getElementById("notice-body").value.trim();
+  const msgEl = document.getElementById("notice-create-msg");
+  if (!body) { msgEl.innerHTML = '<span class="msg msg-error">内容を入力</span>'; return; }
+  try {
+    const res = await fetch(`${API_BASE}/admin/notices`, {
+      method: "POST", headers: authHeaders(),
+      body: JSON.stringify({ body })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      msgEl.innerHTML = '<span class="msg msg-success">投稿完了</span>';
+      document.getElementById("notice-body").value = "";
+      loadAdminNotices();
+    }
+  } catch (e) { msgEl.innerHTML = '<span class="msg msg-error">通信エラー</span>'; }
+});
+
+async function loadAdminNotices() {
+  const el = document.getElementById("notices-list-container");
+  try {
+    const res = await fetch(`${API_BASE}/admin/notices`, { headers: { "Authorization": `Bearer ${AUTH_TOKEN}` } });
+    // /notices はGETで認証不要だが一応
+    const res2 = await fetch(`${API_BASE}/notices`);
+    const data = await res2.json();
+    if (!data.notices || !data.notices.length) { el.innerHTML = "<h2>お知らせ一覧</h2><p>なし</p>"; return; }
+    el.innerHTML = "<h2>お知らせ一覧</h2>" + data.notices.map(n => `
+      <div class="item">
+        <div class="item-meta">#${n.id} | ${n.created_at || ""}</div>
+        <div class="item-body">${esc(n.body)}</div>
+        <div class="item-actions">
+          <button class="btn btn-danger btn-sm" onclick="deleteNotice(${n.id})">削除</button>
+        </div>
+      </div>
+    `).join("");
+  } catch (e) { el.innerHTML = "<h2>お知らせ一覧</h2><p>読み込み失敗</p>"; }
+}
+
+async function deleteNotice(id) {
+  if (!confirm("このお知らせを削除しますか？")) return;
+  await fetch(`${API_BASE}/admin/notices/${id}`, { method: "DELETE", headers: authHeaders() });
+  loadAdminNotices();
+}
+
+// ===== 出店場所管理 =====
+document.getElementById("loc-create-btn").addEventListener("click", async () => {
+  const name = document.getElementById("loc-name").value.trim();
+  const lat = parseFloat(document.getElementById("loc-lat").value);
+  const lng = parseFloat(document.getElementById("loc-lng").value);
+  const msgEl = document.getElementById("loc-create-msg");
+  if (!name || isNaN(lat) || isNaN(lng)) { msgEl.innerHTML = '<span class="msg msg-error">全項目を入力</span>'; return; }
+  try {
+    const res = await fetch(`${API_BASE}/admin/locations`, {
+      method: "POST", headers: authHeaders(),
+      body: JSON.stringify({ name, latitude: lat, longitude: lng })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      msgEl.innerHTML = '<span class="msg msg-success">追加完了</span>';
+      document.getElementById("loc-name").value = "";
+      document.getElementById("loc-lat").value = "";
+      document.getElementById("loc-lng").value = "";
+      loadAdminLocations();
+    }
+  } catch (e) { msgEl.innerHTML = '<span class="msg msg-error">通信エラー</span>'; }
+});
+
+async function loadAdminLocations() {
+  const el = document.getElementById("locations-list-container");
+  try {
+    const res = await fetch(`${API_BASE}/admin/locations`, { headers: authHeaders() });
+    const data = await res.json();
+    if (!data.locations || !data.locations.length) { el.innerHTML = "<h2>登録済み出店場所</h2><p>なし</p>"; return; }
+    el.innerHTML = "<h2>登録済み出店場所</h2>" + data.locations.map(l => `
+      <div class="item">
+        <strong>${esc(l.name)}</strong>
+        <div class="item-meta">緯度: ${l.latitude} / 経度: ${l.longitude}</div>
+      </div>
+    `).join("");
+  } catch (e) { el.innerHTML = "<h2>登録済み出店場所</h2><p>読み込み失敗</p>"; }
+}
+
+function esc(str) {
+  const d = document.createElement("div");
+  d.textContent = str || "";
+  return d.innerHTML;
+}
+</script>
+</body>
+</html>
