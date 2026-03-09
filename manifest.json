@@ -9,14 +9,8 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "onigiriya_kanatake_192.png",
+      "src": "https://kimura-jane.github.io/kanatae-app/onigiriya_kanatake_192.png",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "onigiriya_kanatake_512.png",
-      "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }
