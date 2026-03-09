@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>おにぎり屋かなたけ</title>
+  <meta name="description" content="おにぎり屋かなたけ - 出店スケジュール・クーポン・口コミ">
+  <meta name="theme-color" content="#f5a623">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="onigiriya_kanatake_192.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+
+  <!-- QRスキャナー -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
+
+  <link rel="stylesheet" href="style.css">
+  <script src="spots-all.js" defer></script>
+  <script src="spots.js" defer></script>
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <!-- ===== ヘッダー ===== -->
+  <header class="header">
+    <h1>
+      <img src="icon.png" alt="" class="header-icon">
+      おにぎり屋かなたけ
+    </h1>
+  </header>
+
+  <!-- ===== メインコンテンツ ===== -->
+  <main class="main-content">
+
+    <!-- ===== ホーム ===== -->
+    <section class="page active" id="page-home">
+      <!-- お知らせ -->
+      <div class="section-card" id="notices-area">
+        <h2 class="section-title">📢 お知らせ</h2>
+        <div id="notices-list" class="notices-list">
+          <p class="loading-text">読み込み中…</p>
+        </div>
+      </div>
+
+      <!-- 来店ポイント -->
+      <div class="section-card">
+        <h2 class="section-title">⭐ 来店ポイント</h2>
+        <div class="stamp-card">
+          <div class="stamp-grid" id="stamp-grid">
+            <!-- JSで20個生成 -->
+          </div>
+          <p class="stamp-count">現在 <span id="stamp-current">0</span> / 20 ポイント</p>
+          <p class="stamp-reward">20ポイントで「女神のほほえみ」プレゼント！</p>
+          <button class="btn btn-primary" id="redeem-btn" style="display:none;">🎁 特典を受け取る</button>
+        </div>
+      </div>
+
+      <!-- カレンダー -->
+      <div class="section-card">
+        <h2 class="section-title">📅 出店カレンダー</h2>
+        <div class="calendar">
+          <div class="calendar-header">
+            <button class="calendar-nav" id="prevMonth">◀</button>
+            <h3 class="calendar-title" id="calendarTitle"></h3>
+            <button class="calendar-nav" id="nextMonth">▶</button>
+          </div>
+          <div class="calendar-grid" id="calendarGrid"></div>
+        </div>
+      </div>
+
+      <!-- 地図 -->
+      <div class="section-card">
+        <h2 class="section-title">📍 出店マップ</h2>
+        <div id="map" class="home-map"></div>
+        <div class="spot-list-wrap">
+          <ol class="spot-list" id="spotList"></ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== クーポン ===== -->
+    <section class="page" id="page-coupon">
+      <!-- メニュー画像 -->
+      <div class="section-card">
+        <h2 class="section-title">🍙 メニュー</h2>
+        <div class="menu-container">
+          <img src="IMG_7605.jpeg" alt="おにぎり屋かなたけ メニュー" class="menu-image">
+        </div>
+      </div>
+
+      <!-- 初回クーポン -->
+      <div class="section-card" id="welcome-coupon-area">
+        <h2 class="section-title">🎁 初回クーポン</h2>
+        <div id="welcome-coupon-content">
+          <p class="coupon-desc">はじめての方に、1つプレゼント！</p>
+          <div class="welcome-choices">
+            <button class="welcome-choice-btn" data-choice="お茶">🍵 お茶</button>
+            <button class="welcome-choice-btn" data-choice="ラムネ">🥤 ラムネ</button>
+            <button class="welcome-choice-btn" data-choice="ダンゴ">🍡 ダンゴ</button>
+          </div>
+          <p class="coupon-note">※ 1端末1回限りです</p>
+        </div>
+        <div id="welcome-coupon-used" style="display:none;">
+          <div class="coupon-used-badge">✅ 使用済み</div>
+          <p class="coupon-note">初回クーポンは使用済みです</p>
+        </div>
+        <div id="welcome-coupon-show" style="display:none;">
+          <div class="coupon-show-card">
+            <p class="coupon-show-label">この画面を店主に見せてね</p>
+            <p class="coupon-show-item" id="welcome-coupon-item"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- FiNANCiEクーポン -->
+      <div class="section-card">
+        <h2 class="section-title">🎫 FiNANCiEクーポン</h2>
+        <p class="coupon-desc">クーポンコードをお持ちの方はこちら</p>
+        <div class="code-input-wrap">
+          <input type="text" id="coupon-code-input" class="input-field" placeholder="コードを入力" maxlength="20">
+          <button class="btn btn-primary" id="coupon-code-btn">送信</button>
+        </div>
+        <p id="coupon-code-result" class="result-text"></p>
+      </div>
+    </section>
+
+    <!-- ===== QRスキャン ===== -->
+    <section class="page" id="page-qr">
+      <div class="qr-container">
+        <h2 class="section-title">📷 来店チェックイン</h2>
+        <p class="qr-desc">お店のQRコードをスキャンしてポイントGET！</p>
+        <div id="qr-reader" class="qr-reader"></div>
+        <button class="btn btn-large btn-qr" id="qr-start-btn">📷 QRスキャン開始</button>
+        <p id="qr-result" class="result-text"></p>
+        <p class="qr-note">※ 1日1回・お店から500m以内で有効</p>
+      </div>
+    </section>
+
+    <!-- ===== 口コミ ===== -->
+    <section class="page" id="page-reviews">
+      <div class="section-card">
+        <h2 class="section-title">💬 口コミ</h2>
+        <div id="reviews-list" class="reviews-list">
+          <p class="loading-text">読み込み中…</p>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <h2 class="section-title">✏️ 口コミを投稿</h2>
+        <div class="review-form">
+          <input type="text" id="review-nickname" class="input-field" placeholder="ニックネーム（50文字以内）" maxlength="50">
+          <textarea id="review-body" class="input-field textarea-field" placeholder="口コミを書いてね（600文字以内）" maxlength="600"></textarea>
+          <div class="review-char-count"><span id="review-char-current">0</span> / 600</div>
+          <button class="btn btn-primary" id="review-submit-btn">投稿する</button>
+          <p id="review-result" class="result-text"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 設定 ===== -->
+    <section class="page" id="page-settings">
+      <div class="section-card">
+        <h2 class="section-title">🔔 通知設定</h2>
+
+        <div class="settings-card">
+          <p class="settings-card-title">⏰ 通知する時間</p>
+          <label class="settings-option">
+            <input type="radio" name="notifyHour" value="18">
+            <span class="settings-option-text">前日 18:00 に通知</span>
+          </label>
+          <label class="settings-option">
+            <input type="radio" name="notifyHour" value="21" checked>
+            <span class="settings-option-text">前日 21:00 に通知</span>
+          </label>
+        </div>
+
+        <div class="settings-card">
+          <p class="settings-card-title">📍 通知する出店場所</p>
+          <label class="settings-option">
+            <input type="checkbox" id="place_all" checked>
+            <span class="settings-option-text">すべての出店を通知する</span>
+          </label>
+          <div id="placeList" class="settings-places">
+            <p class="settings-places-title">または、場所を選んで通知：</p>
+            <label class="settings-option">
+              <input type="checkbox" class="placeChk" value="sakura_hospital">
+              <span class="settings-option-text">川口さくら病院</span>
+            </label>
+            <label class="settings-option">
+              <input type="checkbox" class="placeChk" value="dokkyo">
+              <span class="settings-option-text">獨協大学</span>
+            </label>
+            <label class="settings-option">
+              <input type="checkbox" class="placeChk" value="saitama_cityhall">
+              <span class="settings-option-text">さいたま市役所</span>
+            </label>
+            <label class="settings-option">
+              <input type="checkbox" class="placeChk" value="dynam_togasaki">
+              <span class="settings-option-text">ダイナム戸ケ崎</span>
+            </label>
+          </div>
+          <div class="settings-note">
+            <span class="settings-note-icon">💡</span>
+            <span>「すべての出店を通知する」がONの場合、個別の場所選択は無効になります</span>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-full" id="pushBtn" type="button">🔔 通知を受け取る</button>
+        <p id="pushStatus" class="result-text"></p>
+      </div>
+
+      <div class="section-card">
+        <h2 class="section-title">ℹ️ アプリ情報</h2>
+        <p class="app-info-text">おにぎり屋かなたけ v2.0</p>
+        <p class="app-info-text">端末ID: <span id="device-id-display" class="device-id-text"></span></p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== 下部ナビ ===== -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-page="home">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-label">ホーム</span>
+    </button>
+    <button class="nav-btn" data-page="coupon">
+      <span class="nav-icon">🎫</span>
+      <span class="nav-label">クーポン</span>
+    </button>
+    <button class="nav-btn nav-qr" data-page="qr">
+      <span class="nav-qr-circle">📷</span>
+      <span class="nav-label">QR</span>
+    </button>
+    <button class="nav-btn" data-page="reviews">
+      <span class="nav-icon">💬</span>
+      <span class="nav-label">口コミ</span>
+    </button>
+    <button class="nav-btn" data-page="settings">
+      <span class="nav-icon">⚙️</span>
+      <span class="nav-label">設定</span>
+    </button>
+  </nav>
+
+</div>
+
+<!-- イベント詳細モーダル -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <p class="modal-date" id="modalDate"></p>
+    <h3 class="modal-title" id="modalTitle"></h3>
+    <p class="modal-time" id="modalTime"></p>
+    <a class="modal-btn" id="modalMap" href="#" target="_blank" rel="noopener">Googleマップで開く</a>
+    <button class="modal-btn modal-close" id="modalClose">閉じる</button>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
