@@ -4,11 +4,7 @@ const ASSETS = [
   "/index.html",
   "/style.css",
   "/app.js",
-  "/spots-all.js",
-  "/spots.js",
-  "/icon.png",
-  "/onigiriya_kanatake_192.png",
-  "/IMG_7605.jpeg"
+  "/manifest.json"
 ];
 
 self.addEventListener("install", event => {
@@ -28,8 +24,8 @@ self.addEventListener("activate", event => {
 });
 
 self.addEventListener("fetch", event => {
-  // API呼び出しはキャッシュしない
-  if (event.request.url.includes("workers.dev")) return;
+  // 外部API・外部アセットはキャッシュしない
+  if (!event.request.url.startsWith(self.location.origin)) return;
 
   event.respondWith(
     caches.match(event.request).then(cached => {
@@ -48,8 +44,8 @@ self.addEventListener("push", event => {
   const title = data.title || "おにぎり屋かなたけ";
   const options = {
     body: data.body || "新しいお知らせがあります",
-    icon: "/onigiriya_kanatake_192.png",
-    badge: "/onigiriya_kanatake_192.png",
+    icon: "https://kimura-jane.github.io/kanatae-app/onigiriya_kanatake_192.png",
+    badge: "https://kimura-jane.github.io/kanatae-app/onigiriya_kanatake_192.png",
     data: { url: data.url || "/" }
   };
   event.waitUntil(self.registration.showNotification(title, options));
