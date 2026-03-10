@@ -2,6 +2,19 @@
 const API_BASE = "https://kanatake-api.la-kofu.workers.dev";
 const PUSH_API_BASE = "https://kanatae-push.la-kofu.workers.dev";
 const ASSETS_BASE = "https://kimura-jane.github.io/kanatae-app";
+const APP_URL = "https://kanatake-v2.pages.dev";
+
+const CHOICE_IMAGES = {
+  "お茶": "IMG_5006.jpeg",
+  "ラムネ": "IMG_5012.jpeg",
+  "ダンゴ": "IMG_5007.jpeg"
+};
+
+const CHOICE_EMOJI = {
+  "お茶": "🍵 お茶",
+  "ラムネ": "🥤 ラムネ",
+  "ダンゴ": "🍡 ダンゴ"
+};
 
 // ===== 端末ID =====
 function getDeviceId() {
@@ -40,6 +53,7 @@ function switchPage(page) {
     setTimeout(() => mapInstance.invalidateSize(), 100);
   }
   if (page === "reviews") loadReviews();
+  if (page === "settings") loadCheckinHistory();
 
   const pageEl = document.getElementById(`page-${page}`);
   if (pageEl) pageEl.scrollTop = 0;
@@ -62,6 +76,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   }, 300);
 
   await checkWelcomeCoupon();
+  await checkBirthdayCoupon();
+  await loadBirthMonth();
+
   syncPlaceUI();
   registerSW().catch(() => {});
 });
@@ -78,27 +95,75 @@ async function registerDevice() {
 }
 
 // ===== お知らせ =====
-async function loadNotices() {
+let noticesShowAll = false;
+
+async function loadNotices(all) {
   const el = document.getElementById("notices-list");
+  const moreBtn = document.getElementById("notices-more-btn");
   try {
-    const res = await fetch(`${API_BASE}/notices`);
+    const url = all ? `${API_BASE}/notices?all=1` : `${API_BASE}/notices`;
+    const res = await fetch(url);
     const data = await res.json();
     if (!data.notices || data.notices.length === 0) {
       el.innerHTML = '<p class="loading-text">お知らせはありません</p>';
+      moreBtn.style.display = "none";
       return;
     }
-    el.innerHTML = data.notices.map(n => `
-      <div class="notice-item">
-        <span class="notice-date">${formatDate(n.created_at)}</span>
-        ${escapeHtml(n.body)}
-      </div>
-    `).join("");
+    el.innerHTML = data.notices.map(n => {
+      const bodyHtml = renderNoticeBody(n.body);
+      return `
+        <div class="notice-item">
+          <span class="notice-date">${formatDate(n.created_at)}</span>
+          <div class="notice-body">${bodyHtml}</div>
+        </div>
+      `;
+    }).join("");
+
+    // X埋め込みウィジェット読み込み
+    if (el.querySelector(".twitter-tweet")) {
+      loadTwitterWidget();
+    }
+
+    if (!all && data.notices.length >= 3) {
+      moreBtn.style.display = "block";
+    } else {
+      moreBtn.style.display = "none";
+    }
   } catch (e) {
     el.innerHTML = '<p class="loading-text">読み込みに失敗しました</p>';
   }
 }
 
+function renderNoticeBody(text) {
+  if (!text) return "";
+  const escaped = escapeHtml(text);
+  // X(Twitter)のURLを埋め込みに変換
+  const xRegex = /https?:\/\/(x\.com|twitter\.com)\/\w+\/status\/(\d+)[^\s]*/g;
+  const replaced = escaped.replace(xRegex, (url) => {
+    return `<div class="notice-embed"><blockquote class="twitter-tweet"><a href="${url}"></a></blockquote></div>`;
+  });
+  return replaced;
+}
+
+function loadTwitterWidget() {
+  if (window.twttr) {
+    window.twttr.widgets.load();
+    return;
+  }
+  const s = document.createElement("script");
+  s.src = "https://platform.twitter.com/widgets.js";
+  s.async = true;
+  document.head.appendChild(s);
+}
+
+document.getElementById("notices-more-btn").addEventListener("click", () => {
+  noticesShowAll = true;
+  loadNotices(true);
+});
+
 // ===== スタンプ / ポイント =====
+let megamiCouponActive = false;
+
 function initStampGrid() {
   const grid = document.getElementById("stamp-grid");
   let html = "";
@@ -117,6 +182,8 @@ async function loadPoints() {
     });
     const data = await res.json();
     updateStampUI(data.current_points || 0);
+    megamiCouponActive = !!(data.megami_coupon_active);
+    updateMegamiCouponUI();
   } catch (e) {
     console.warn("load points failed:", e);
   }
@@ -128,7 +195,12 @@ function updateStampUI(points) {
   dots.forEach((dot, i) => {
     dot.classList.toggle("filled", i < points);
   });
-  document.getElementById("redeem-btn").style.display = points >= 20 ? "block" : "none";
+  document.getElementById("redeem-btn").style.display = (points >= 20 && !megamiCouponActive) ? "block" : "none";
+}
+
+function updateMegamiCouponUI() {
+  const area = document.getElementById("megami-coupon-area");
+  area.style.display = megamiCouponActive ? "block" : "none";
 }
 
 document.getElementById("redeem-btn").addEventListener("click", async () => {
@@ -141,10 +213,32 @@ document.getElementById("redeem-btn").addEventListener("click", async () => {
     });
     const data = await res.json();
     if (data.ok) {
-      alert("🎉 おめでとうございます！\n「女神のほほえみ」をお店で受け取ってね！");
+      alert("🎉 おめでとうございます！\nクーポンタブに「女神のほほえみ」クーポンが届きました！");
+      megamiCouponActive = true;
       updateStampUI(0);
+      updateMegamiCouponUI();
     } else {
       alert("交換できませんでした: " + (data.error || ""));
+    }
+  } catch (e) {
+    alert("通信エラーが発生しました");
+  }
+});
+
+// 女神のほほえみクーポン使用
+document.getElementById("megami-use-btn").addEventListener("click", async () => {
+  if (!confirm("⚠️ 「女神のほほえみ」を使用済みにしますか？\n店主の目の前で押してください。")) return;
+  try {
+    const res = await fetch(`${API_BASE}/megami-coupon/use`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ device_id: DEVICE_ID })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      megamiCouponActive = false;
+      updateMegamiCouponUI();
+      alert("✅ 使用済みにしました！ありがとうございます！");
     }
   } catch (e) {
     alert("通信エラーが発生しました");
@@ -372,27 +466,21 @@ function getTodaySpot() {
   const month = now.getMonth() + 1;
   const day = now.getDate();
 
-  // まず spots.js（今月マップ用）から探す
   if (Array.isArray(window.spots)) {
     for (const s of window.spots) {
       if (!s.lat || !s.lng) continue;
       const m = (s.date || "").match(/(\d+)\/(\d+)/);
-      if (m && parseInt(m[1], 10) === month && parseInt(m[2], 10) === day) {
-        return s;
-      }
+      if (m && parseInt(m[1], 10) === month && parseInt(m[2], 10) === day) return s;
     }
   }
 
-  // 次に spotsAllByYear から探す
   if (window.spotsAllByYear) {
     const year = now.getFullYear();
     const arr = window.spotsAllByYear[year] || [];
     for (const s of arr) {
       if (!s.lat || !s.lng) continue;
       const m = (s.date || "").match(/(\d+)\/(\d+)/);
-      if (m && parseInt(m[1], 10) === month && parseInt(m[2], 10) === day) {
-        return s;
-      }
+      if (m && parseInt(m[1], 10) === month && parseInt(m[2], 10) === day) return s;
     }
   }
 
@@ -400,6 +488,8 @@ function getTodaySpot() {
 }
 
 // ===== 初回クーポン =====
+let welcomeSelectedChoice = null;
+
 async function checkWelcomeCoupon() {
   try {
     const res = await fetch(`${API_BASE}/welcome-coupon/status`, {
@@ -415,33 +505,102 @@ async function checkWelcomeCoupon() {
   } catch (e) { console.warn("welcome coupon check failed:", e); }
 }
 
-document.querySelectorAll(".welcome-choice-btn").forEach(btn => {
-  btn.addEventListener("click", async () => {
-    const choice = btn.dataset.choice;
-    if (!confirm(`「${choice}」を選びますか？\n（1回限りです）`)) return;
-
-    try {
-      const res = await fetch(`${API_BASE}/welcome-coupon`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ device_id: DEVICE_ID, choice })
-      });
-      const data = await res.json();
-      if (data.ok) {
-        document.getElementById("welcome-coupon-content").style.display = "none";
-        document.getElementById("welcome-coupon-show").style.display = "block";
-        const emojiMap = { "お茶": "🍵 お茶", "ラムネ": "🥤 ラムネ", "ダンゴ": "🍡 ダンゴ" };
-        document.getElementById("welcome-coupon-item").textContent = emojiMap[choice] || choice;
-      } else if (data.error === "already used") {
-        document.getElementById("welcome-coupon-content").style.display = "none";
-        document.getElementById("welcome-coupon-used").style.display = "block";
-      } else {
-        alert("エラー: " + (data.error || "不明なエラー"));
-      }
-    } catch (e) {
-      alert("通信エラーが発生しました");
-    }
+// 選択式UI
+document.querySelectorAll("#welcome-choices .welcome-choice-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("#welcome-choices .welcome-choice-btn").forEach(b => b.classList.remove("selected"));
+    btn.classList.add("selected");
+    welcomeSelectedChoice = btn.dataset.choice;
+    document.getElementById("welcome-confirm-btn").style.display = "block";
+    document.getElementById("choice-hint").style.display = "none";
   });
+});
+
+document.getElementById("welcome-confirm-btn").addEventListener("click", async () => {
+  if (!welcomeSelectedChoice) return;
+  if (!confirm(`⚠️ 1回限りです！\n\n「${welcomeSelectedChoice}」をもらいますか？\n\n店主の目の前で押してください。`)) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/welcome-coupon`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ device_id: DEVICE_ID, choice: welcomeSelectedChoice })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      document.getElementById("welcome-coupon-content").style.display = "none";
+      document.getElementById("welcome-coupon-show").style.display = "block";
+      document.getElementById("welcome-coupon-img").src = CHOICE_IMAGES[welcomeSelectedChoice] || "";
+      document.getElementById("welcome-coupon-item").textContent = CHOICE_EMOJI[welcomeSelectedChoice] || welcomeSelectedChoice;
+    } else if (data.error === "already used") {
+      document.getElementById("welcome-coupon-content").style.display = "none";
+      document.getElementById("welcome-coupon-used").style.display = "block";
+    } else {
+      alert("エラー: " + (data.error || "不明なエラー"));
+    }
+  } catch (e) {
+    alert("通信エラーが発生しました");
+  }
+});
+
+// ===== 誕生日クーポン =====
+let birthdaySelectedChoice = null;
+
+async function checkBirthdayCoupon() {
+  try {
+    const res = await fetch(`${API_BASE}/birthday-coupon/status`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ device_id: DEVICE_ID })
+    });
+    const data = await res.json();
+    if (!data.registered || !data.is_birth_month) {
+      document.getElementById("birthday-coupon-area").style.display = "none";
+      return;
+    }
+    document.getElementById("birthday-coupon-area").style.display = "block";
+    if (data.used_this_year) {
+      document.getElementById("birthday-coupon-content").style.display = "none";
+      document.getElementById("birthday-coupon-used").style.display = "block";
+    }
+  } catch (e) { console.warn("birthday coupon check failed:", e); }
+}
+
+document.querySelectorAll("#birthday-choices .birthday-choice-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("#birthday-choices .birthday-choice-btn").forEach(b => b.classList.remove("selected"));
+    btn.classList.add("selected");
+    birthdaySelectedChoice = btn.dataset.choice;
+    document.getElementById("birthday-confirm-btn").style.display = "block";
+    document.getElementById("birthday-choice-hint").style.display = "none";
+  });
+});
+
+document.getElementById("birthday-confirm-btn").addEventListener("click", async () => {
+  if (!birthdaySelectedChoice) return;
+  if (!confirm(`⚠️ 年1回限りです！\n\n「${birthdaySelectedChoice}」をもらいますか？\n\n店主の目の前で押してください。`)) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/birthday-coupon`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ device_id: DEVICE_ID, choice: birthdaySelectedChoice })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      document.getElementById("birthday-coupon-content").style.display = "none";
+      document.getElementById("birthday-coupon-show").style.display = "block";
+      document.getElementById("birthday-coupon-img").src = CHOICE_IMAGES[birthdaySelectedChoice] || "";
+      document.getElementById("birthday-coupon-item").textContent = CHOICE_EMOJI[birthdaySelectedChoice] || birthdaySelectedChoice;
+    } else if (data.error === "already used this year") {
+      document.getElementById("birthday-coupon-content").style.display = "none";
+      document.getElementById("birthday-coupon-used").style.display = "block";
+    } else {
+      alert("エラー: " + (data.error || "不明なエラー"));
+    }
+  } catch (e) {
+    alert("通信エラーが発生しました");
+  }
 });
 
 // ===== FiNANCiEクーポン =====
@@ -518,7 +677,6 @@ async function processCheckin(qrText) {
   resultEl.className = "result-text loading";
   resultEl.textContent = "📍 今日の出店場所を確認中…";
 
-  // spots.js から今日の出店場所を探す
   const todaySpot = getTodaySpot();
   if (!todaySpot) {
     resultEl.className = "result-text error";
@@ -641,6 +799,101 @@ document.getElementById("review-submit-btn").addEventListener("click", async () 
   } catch (e) {
     resultEl.className = "result-text error";
     resultEl.textContent = "❌ 通信エラー";
+  }
+});
+
+// ===== 誕生月登録 =====
+async function loadBirthMonth() {
+  try {
+    const res = await fetch(`${API_BASE}/birthday-coupon/status`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ device_id: DEVICE_ID })
+    });
+    const data = await res.json();
+    if (data.registered && data.birth_month) {
+      document.getElementById("birth-month-select").value = data.birth_month;
+    }
+  } catch (e) {}
+}
+
+document.getElementById("birth-month-btn").addEventListener("click", async () => {
+  const month = parseInt(document.getElementById("birth-month-select").value);
+  const resultEl = document.getElementById("birth-month-result");
+  if (!month) { resultEl.className = "result-text error"; resultEl.textContent = "月を選択してください"; return; }
+
+  try {
+    const res = await fetch(`${API_BASE}/birthday`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ device_id: DEVICE_ID, birth_month: month })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      resultEl.className = "result-text success";
+      resultEl.textContent = `✅ ${month}月で登録しました！`;
+      await checkBirthdayCoupon();
+    }
+  } catch (e) {
+    resultEl.className = "result-text error";
+    resultEl.textContent = "❌ 通信エラー";
+  }
+});
+
+// ===== チェックイン履歴 =====
+async function loadCheckinHistory() {
+  const el = document.getElementById("checkin-history");
+  try {
+    const res = await fetch(`${API_BASE}/checkin-history`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ device_id: DEVICE_ID })
+    });
+    const data = await res.json();
+    if (!data.history || data.history.length === 0) {
+      el.innerHTML = '<p class="loading-text">まだ来店履歴はありません</p>';
+      return;
+    }
+    el.innerHTML = data.history.map(h => `
+      <div class="checkin-item">
+        <span class="checkin-spot">${escapeHtml(h.spot_name || "出店場所")}</span>
+        <span class="checkin-date">${formatDate(h.checked_in_at)}</span>
+      </div>
+    `).join("");
+  } catch (e) {
+    el.innerHTML = '<p class="loading-text">読み込みに失敗しました</p>';
+  }
+}
+
+// ===== シェア =====
+document.getElementById("share-x-btn").addEventListener("click", () => {
+  const text = "おにぎり屋かなたけのアプリ🍙\n出店スケジュールやクーポンがチェックできるよ！";
+  window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(APP_URL)}`, "_blank");
+});
+
+document.getElementById("share-line-btn").addEventListener("click", () => {
+  const text = "おにぎり屋かなたけのアプリ🍙 " + APP_URL;
+  window.open(`https://line.me/R/share?text=${encodeURIComponent(text)}`, "_blank");
+});
+
+// ===== キャッシュクリア =====
+document.getElementById("cache-clear-btn").addEventListener("click", async () => {
+  const resultEl = document.getElementById("cache-clear-result");
+  try {
+    if ("caches" in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+    if ("serviceWorker" in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+    resultEl.className = "result-text success";
+    resultEl.textContent = "✅ キャッシュをクリアしました。ページを再読み込みします…";
+    setTimeout(() => location.reload(), 1500);
+  } catch (e) {
+    resultEl.className = "result-text error";
+    resultEl.textContent = "❌ クリアに失敗しました";
   }
 });
 
