@@ -19,12 +19,10 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
 
-  <!-- QRスキャナー -->
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
 
   <link rel="stylesheet" href="style.css">
 
-  <!-- 既存リポジトリから直接読み込み -->
   <script src="https://kimura-jane.github.io/kanatae-app/spots-all.js" defer></script>
   <script src="https://kimura-jane.github.io/kanatae-app/spots.js" defer></script>
 </head>
@@ -32,7 +30,6 @@
 
 <div class="app" id="app">
 
-  <!-- ===== ヘッダー ===== -->
   <header class="header">
     <h1>
       <img src="https://kimura-jane.github.io/kanatae-app/icon.png" alt="" class="header-icon">
@@ -40,20 +37,18 @@
     </h1>
   </header>
 
-  <!-- ===== メインコンテンツ ===== -->
   <main class="main-content">
 
     <!-- ===== ホーム ===== -->
     <section class="page active" id="page-home">
-      <!-- お知らせ -->
       <div class="section-card" id="notices-area">
         <h2 class="section-title">📢 お知らせ</h2>
         <div id="notices-list" class="notices-list">
           <p class="loading-text">読み込み中…</p>
         </div>
+        <button class="btn btn-secondary btn-full" id="notices-more-btn" style="display:none;">もっと見る</button>
       </div>
 
-      <!-- 来店ポイント -->
       <div class="section-card">
         <h2 class="section-title">⭐ 来店ポイント</h2>
         <div class="stamp-card">
@@ -64,7 +59,6 @@
         </div>
       </div>
 
-      <!-- カレンダー -->
       <div class="section-card">
         <h2 class="section-title">📅 出店カレンダー</h2>
         <div class="calendar">
@@ -77,7 +71,6 @@
         </div>
       </div>
 
-      <!-- 地図 -->
       <div class="section-card">
         <h2 class="section-title">📍 出店マップ</h2>
         <div id="map" class="home-map"></div>
@@ -89,7 +82,6 @@
 
     <!-- ===== クーポン ===== -->
     <section class="page" id="page-coupon">
-      <!-- メニュー画像 -->
       <div class="section-card">
         <h2 class="section-title">🍙 メニュー</h2>
         <div class="menu-container">
@@ -97,17 +89,40 @@
         </div>
       </div>
 
+      <!-- 女神のほほえみクーポン -->
+      <div class="section-card" id="megami-coupon-area" style="display:none;">
+        <h2 class="section-title">🌾 女神のほほえみクーポン</h2>
+        <div class="coupon-show-card">
+          <img src="IMG_5008.jpeg" alt="女神のほほえみ" class="coupon-image">
+          <p class="coupon-show-label">この画面を店主に見せてね</p>
+          <p class="coupon-show-item">🌾 女神のほほえみ</p>
+          <p class="coupon-warning">⚠️ 店主の目の前で「使用済みにする」を押してください</p>
+          <button class="btn btn-danger btn-full" id="megami-use-btn">使用済みにする</button>
+        </div>
+      </div>
+
       <!-- 初回クーポン -->
       <div class="section-card" id="welcome-coupon-area">
         <h2 class="section-title">🎁 初回クーポン</h2>
         <div id="welcome-coupon-content">
-          <p class="coupon-desc">はじめての方に、1つプレゼント！</p>
-          <div class="welcome-choices">
-            <button class="welcome-choice-btn" data-choice="お茶">🍵 お茶</button>
-            <button class="welcome-choice-btn" data-choice="ラムネ">🥤 ラムネ</button>
-            <button class="welcome-choice-btn" data-choice="ダンゴ">🍡 ダンゴ</button>
+          <p class="coupon-desc">はじめての方に、<strong>どれか1つ</strong>プレゼント！</p>
+          <p class="coupon-warning">⚠️ 1端末1回限り・店主の目の前で押してください</p>
+          <div class="welcome-choices" id="welcome-choices">
+            <button class="welcome-choice-btn" data-choice="お茶">
+              <img src="IMG_5006.jpeg" alt="お茶" class="choice-img">
+              <span>🍵 お茶</span>
+            </button>
+            <button class="welcome-choice-btn" data-choice="ラムネ">
+              <img src="IMG_5012.jpeg" alt="ラムネ" class="choice-img">
+              <span>🥤 ラムネ</span>
+            </button>
+            <button class="welcome-choice-btn" data-choice="ダンゴ">
+              <img src="IMG_5007.jpeg" alt="ダンゴ" class="choice-img">
+              <span>🍡 ダンゴ</span>
+            </button>
           </div>
-          <p class="coupon-note">※ 1端末1回限りです</p>
+          <p class="choice-hint" id="choice-hint">↑ どれか1つを選んでタップしてね</p>
+          <button class="btn btn-primary btn-full" id="welcome-confirm-btn" style="display:none;">この特典をもらう</button>
         </div>
         <div id="welcome-coupon-used" style="display:none;">
           <div class="coupon-used-badge">✅ 使用済み</div>
@@ -115,8 +130,44 @@
         </div>
         <div id="welcome-coupon-show" style="display:none;">
           <div class="coupon-show-card">
+            <img src="" alt="" class="coupon-image" id="welcome-coupon-img">
             <p class="coupon-show-label">この画面を店主に見せてね</p>
             <p class="coupon-show-item" id="welcome-coupon-item"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 誕生日クーポン -->
+      <div class="section-card" id="birthday-coupon-area" style="display:none;">
+        <h2 class="section-title">🎂 誕生日クーポン</h2>
+        <div id="birthday-coupon-content">
+          <p class="coupon-desc">お誕生月おめでとう！<strong>どれか1つ</strong>プレゼント！</p>
+          <p class="coupon-warning">⚠️ 年1回限り・店主の目の前で押してください</p>
+          <div class="welcome-choices" id="birthday-choices">
+            <button class="welcome-choice-btn birthday-choice-btn" data-choice="お茶">
+              <img src="IMG_5006.jpeg" alt="お茶" class="choice-img">
+              <span>🍵 お茶</span>
+            </button>
+            <button class="welcome-choice-btn birthday-choice-btn" data-choice="ラムネ">
+              <img src="IMG_5012.jpeg" alt="ラムネ" class="choice-img">
+              <span>🥤 ラムネ</span>
+            </button>
+            <button class="welcome-choice-btn birthday-choice-btn" data-choice="ダンゴ">
+              <img src="IMG_5007.jpeg" alt="ダンゴ" class="choice-img">
+              <span>🍡 ダンゴ</span>
+            </button>
+          </div>
+          <p class="choice-hint" id="birthday-choice-hint">↑ どれか1つを選んでタップしてね</p>
+          <button class="btn btn-primary btn-full" id="birthday-confirm-btn" style="display:none;">この特典をもらう</button>
+        </div>
+        <div id="birthday-coupon-used" style="display:none;">
+          <div class="coupon-used-badge">✅ 今年の誕生日クーポンは使用済みです</div>
+        </div>
+        <div id="birthday-coupon-show" style="display:none;">
+          <div class="coupon-show-card">
+            <img src="" alt="" class="coupon-image" id="birthday-coupon-img">
+            <p class="coupon-show-label">この画面を店主に見せてね</p>
+            <p class="coupon-show-item" id="birthday-coupon-item"></p>
           </div>
         </div>
       </div>
@@ -170,7 +221,6 @@
     <section class="page" id="page-settings">
       <div class="section-card">
         <h2 class="section-title">🔔 通知設定</h2>
-
         <div class="settings-card">
           <p class="settings-card-title">⏰ 通知する時間</p>
           <label class="settings-option">
@@ -213,11 +263,68 @@
             <span>「すべての出店を通知する」がONの場合、個別の場所選択は無効になります</span>
           </div>
         </div>
-
         <button class="btn btn-primary btn-full" id="pushBtn" type="button">🔔 通知を受け取る</button>
         <p id="pushStatus" class="result-text"></p>
       </div>
 
+      <!-- 誕生月登録 -->
+      <div class="section-card">
+        <h2 class="section-title">🎂 誕生月登録</h2>
+        <p class="settings-desc">誕生月を登録すると、毎年お誕生月にクーポンがもらえます！</p>
+        <div class="birthday-select-wrap">
+          <select id="birth-month-select" class="input-field select-field">
+            <option value="">選択してください</option>
+            <option value="1">1月</option>
+            <option value="2">2月</option>
+            <option value="3">3月</option>
+            <option value="4">4月</option>
+            <option value="5">5月</option>
+            <option value="6">6月</option>
+            <option value="7">7月</option>
+            <option value="8">8月</option>
+            <option value="9">9月</option>
+            <option value="10">10月</option>
+            <option value="11">11月</option>
+            <option value="12">12月</option>
+          </select>
+          <button class="btn btn-primary" id="birth-month-btn">登録</button>
+        </div>
+        <p id="birth-month-result" class="result-text"></p>
+      </div>
+
+      <!-- チェックイン履歴 -->
+      <div class="section-card">
+        <h2 class="section-title">📋 来店履歴</h2>
+        <div id="checkin-history" class="checkin-history">
+          <p class="loading-text">読み込み中…</p>
+        </div>
+      </div>
+
+      <!-- シェア -->
+      <div class="section-card">
+        <h2 class="section-title">📤 シェア</h2>
+        <p class="settings-desc">おにぎり屋かなたけをシェアしよう！</p>
+        <div class="share-buttons">
+          <button class="btn btn-share btn-x" id="share-x-btn">𝕏 でシェア</button>
+          <button class="btn btn-share btn-line" id="share-line-btn">LINE でシェア</button>
+        </div>
+      </div>
+
+      <!-- お問い合わせ -->
+      <div class="section-card">
+        <h2 class="section-title">📩 お問い合わせ</h2>
+        <a href="https://x.com/kanatake33" target="_blank" rel="noopener" class="btn btn-secondary btn-full">𝕏 @kanatake33 にDM</a>
+      </div>
+
+      <!-- キャッシュクリア -->
+      <div class="section-card">
+        <h2 class="section-title">🔧 メンテナンス</h2>
+        <p class="settings-desc">表示がおかしいときはキャッシュをクリアしてください</p>
+        <button class="btn btn-secondary btn-full" id="cache-clear-btn">🗑️ キャッシュクリア</button>
+        <p id="cache-clear-result" class="result-text"></p>
+      </div>
+
+      <!-- アプリ情報 -->
       <div class="section-card">
         <h2 class="section-title">ℹ️ アプリ情報</h2>
         <p class="app-info-text">おにぎり屋かなたけ v2.0</p>
@@ -227,7 +334,6 @@
 
   </main>
 
-  <!-- ===== 下部ナビ ===== -->
   <nav class="bottom-nav">
     <button class="nav-btn active" data-page="home">
       <span class="nav-icon">🏠</span>
@@ -253,7 +359,6 @@
 
 </div>
 
-<!-- イベント詳細モーダル -->
 <div class="modal-overlay" id="modal">
   <div class="modal">
     <p class="modal-date" id="modalDate"></p>
