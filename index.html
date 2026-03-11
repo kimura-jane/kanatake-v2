@@ -271,23 +271,26 @@
       <div class="section-card">
         <h2 class="section-title">🎂 誕生月登録</h2>
         <p class="settings-desc">誕生月を登録すると、毎年お誕生月にクーポンがもらえます！</p>
-        <div class="birthday-select-wrap">
-          <select id="birth-month-select" class="input-field select-field">
-            <option value="">選択してください</option>
-            <option value="1">1月</option>
-            <option value="2">2月</option>
-            <option value="3">3月</option>
-            <option value="4">4月</option>
-            <option value="5">5月</option>
-            <option value="6">6月</option>
-            <option value="7">7月</option>
-            <option value="8">8月</option>
-            <option value="9">9月</option>
-            <option value="10">10月</option>
-            <option value="11">11月</option>
-            <option value="12">12月</option>
-          </select>
-          <button class="btn btn-primary" id="birth-month-btn">登録</button>
+        <div id="birth-month-form">
+          <p class="birth-month-warning">⚠️ 一度登録すると変更できません</p>
+          <div class="birthday-select-wrap">
+            <select id="birth-month-select" class="input-field select-field">
+              <option value="">選択してください</option>
+              <option value="1">1月</option>
+              <option value="2">2月</option>
+              <option value="3">3月</option>
+              <option value="4">4月</option>
+              <option value="5">5月</option>
+              <option value="6">6月</option>
+              <option value="7">7月</option>
+              <option value="8">8月</option>
+              <option value="9">9月</option>
+              <option value="10">10月</option>
+              <option value="11">11月</option>
+              <option value="12">12月</option>
+            </select>
+            <button class="btn btn-primary" id="birth-month-btn">登録</button>
+          </div>
         </div>
         <p id="birth-month-result" class="result-text"></p>
       </div>
