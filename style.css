@@ -832,3 +832,31 @@ html, body {
 .modal-close { background: #eee; color: #666; }
 
 .leaflet-popup-content strong { font-size: 14px; }
+
+/* 誕生月ロック表示 */
+.birth-month-locked {
+  text-align: center;
+  padding: 12px 0;
+}
+
+.birth-month-display {
+  font-size: 18px;
+  color: #f5a623;
+  margin-bottom: 6px;
+}
+
+.birth-month-note {
+  font-size: 12px;
+  color: #999;
+}
+
+.birth-month-warning {
+  font-size: 13px;
+  font-weight: 700;
+  color: #e74c3c;
+  text-align: center;
+  margin-bottom: 10px;
+  padding: 6px 10px;
+  background: #fff5f5;
+  border-radius: 8px;
+}
