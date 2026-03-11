@@ -42,6 +42,10 @@
     .msg { padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 700; margin: 8px 0; text-align: center; }
     .msg-success { background: #d4edda; color: #155724; }
     .msg-error { background: #f8d7da; color: #721c24; }
+    .msg-info { background: #e3f2fd; color: #1565c0; }
+    .info-table { width: 100%; font-size: 13px; margin: 10px 0; }
+    .info-table td { padding: 6px 8px; border-bottom: 1px solid #f0f0f0; }
+    .info-table td:first-child { font-weight: 700; color: #666; white-space: nowrap; width: 120px; }
     #admin-content { display: none; }
   </style>
 </head>
@@ -65,6 +69,7 @@
       <button class="tab-btn" data-tab="coupons">🎫 クーポン</button>
       <button class="tab-btn" data-tab="notices">📢 お知らせ</button>
       <button class="tab-btn" data-tab="locations">📍 出店場所</button>
+      <button class="tab-btn" data-tab="points">⭐ ポイント</button>
     </div>
 
     <!-- 口コミ管理 -->
@@ -117,6 +122,27 @@
         <p>読み込み中…</p>
       </div>
     </div>
+
+    <!-- ポイント管理 -->
+    <div class="tab-content" id="tab-points">
+      <div class="card">
+        <h2>🔍 端末情報検索</h2>
+        <p style="font-size:12px; color:#888; margin-bottom:8px;">旧端末の情報を確認できます</p>
+        <input type="text" id="search-device-id" placeholder="端末IDを入力（例: dev_xxxxxxxx）">
+        <button class="btn btn-primary" id="search-device-btn">検索</button>
+        <p id="search-device-msg"></p>
+        <div id="device-info-result"></div>
+      </div>
+
+      <div class="card">
+        <h2>⭐ ポイント手動付与</h2>
+        <p style="font-size:12px; color:#888; margin-bottom:8px;">機種変更時など、新端末にポイントを付与できます</p>
+        <input type="text" id="add-points-device-id" placeholder="新端末のIDを入力">
+        <input type="number" id="add-points-amount" placeholder="付与ポイント数（1〜20）" min="1" max="20">
+        <button class="btn btn-primary" id="add-points-btn">付与する</button>
+        <p id="add-points-msg"></p>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -151,7 +177,6 @@ document.getElementById("login-btn").addEventListener("click", async () => {
   }
 });
 
-// パスワードEnterキー
 document.getElementById("admin-password").addEventListener("keydown", e => {
   if (e.key === "Enter") document.getElementById("login-btn").click();
 });
@@ -269,9 +294,7 @@ document.getElementById("notice-create-btn").addEventListener("click", async () 
 async function loadAdminNotices() {
   const el = document.getElementById("notices-list-container");
   try {
-    const res = await fetch(`${API_BASE}/admin/notices`, { headers: { "Authorization": `Bearer ${AUTH_TOKEN}` } });
-    // /notices はGETで認証不要だが一応
-    const res2 = await fetch(`${API_BASE}/notices`);
+    const res2 = await fetch(`${API_BASE}/notices?all=1`);
     const data = await res2.json();
     if (!data.notices || !data.notices.length) { el.innerHTML = "<h2>お知らせ一覧</h2><p>なし</p>"; return; }
     el.innerHTML = "<h2>お知らせ一覧</h2>" + data.notices.map(n => `
@@ -329,6 +352,85 @@ async function loadAdminLocations() {
     `).join("");
   } catch (e) { el.innerHTML = "<h2>登録済み出店場所</h2><p>読み込み失敗</p>"; }
 }
+
+// ===== ポイント管理：端末情報検索 =====
+document.getElementById("search-device-btn").addEventListener("click", async () => {
+  const deviceId = document.getElementById("search-device-id").value.trim();
+  const msgEl = document.getElementById("search-device-msg");
+  const resultEl = document.getElementById("device-info-result");
+  resultEl.innerHTML = "";
+
+  if (!deviceId) { msgEl.innerHTML = '<span class="msg msg-error">端末IDを入力</span>'; return; }
+
+  msgEl.innerHTML = '<span class="msg msg-info">検索中…</span>';
+
+  try {
+    const res = await fetch(`${API_BASE}/admin/device-info`, {
+      method: "POST", headers: authHeaders(),
+      body: JSON.stringify({ device_id: deviceId })
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      msgEl.innerHTML = `<span class="msg msg-error">${esc(data.error)}</span>`;
+      return;
+    }
+
+    msgEl.innerHTML = '<span class="msg msg-success">端末情報を取得しました</span>';
+    resultEl.innerHTML = `
+      <table class="info-table">
+        <tr><td>端末ID</td><td style="word-break:break-all;">${esc(data.device_id)}</td></tr>
+        <tr><td>現在ポイント</td><td><strong>${data.current_points}</strong> / 20</td></tr>
+        <tr><td>累計交換回数</td><td>${data.total_redeemed} 回</td></tr>
+        <tr><td>チェックイン回数</td><td>${data.checkin_count} 回</td></tr>
+        <tr><td>女神クーポン</td><td>${data.megami_coupon_active ? "🎫 未使用あり" : "なし"}</td></tr>
+        <tr><td>初回クーポン</td><td>${data.welcome_coupon_used ? "使用済み" : "未使用"}</td></tr>
+        <tr><td>誕生月</td><td>${data.birth_month ? data.birth_month + "月" : "未登録"}</td></tr>
+        <tr><td>誕生日クーポン</td><td>${data.birthday_coupon_used_year ? data.birthday_coupon_used_year + "年 使用済み" : "未使用"}</td></tr>
+      </table>
+      <button class="btn btn-primary btn-sm" onclick="copyPointsToForm('${esc(data.device_id)}', ${data.current_points})">このポイント数を付与欄にコピー</button>
+    `;
+  } catch (e) {
+    msgEl.innerHTML = '<span class="msg msg-error">通信エラー</span>';
+  }
+});
+
+function copyPointsToForm(deviceId, points) {
+  document.getElementById("add-points-amount").value = points;
+  document.getElementById("add-points-device-id").focus();
+  document.getElementById("search-device-msg").innerHTML += '<br><span class="msg msg-info">↓ 下の「新端末のID」に新しい端末IDを入力して付与してください</span>';
+}
+
+// ===== ポイント管理：手動付与 =====
+document.getElementById("add-points-btn").addEventListener("click", async () => {
+  const deviceId = document.getElementById("add-points-device-id").value.trim();
+  const points = parseInt(document.getElementById("add-points-amount").value);
+  const msgEl = document.getElementById("add-points-msg");
+
+  if (!deviceId) { msgEl.innerHTML = '<span class="msg msg-error">端末IDを入力</span>'; return; }
+  if (!points || points < 1 || points > 20) { msgEl.innerHTML = '<span class="msg msg-error">ポイントは1〜20で入力</span>'; return; }
+  if (!confirm(`端末「${deviceId}」に ${points} ポイント付与しますか？`)) return;
+
+  msgEl.innerHTML = '<span class="msg msg-info">付与中…</span>';
+
+  try {
+    const res = await fetch(`${API_BASE}/admin/add-points`, {
+      method: "POST", headers: authHeaders(),
+      body: JSON.stringify({ device_id: deviceId, points })
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+      msgEl.innerHTML = `<span class="msg msg-success">付与完了！ 現在のポイント: ${data.current_points}</span>`;
+      document.getElementById("add-points-device-id").value = "";
+      document.getElementById("add-points-amount").value = "";
+    } else {
+      msgEl.innerHTML = `<span class="msg msg-error">${esc(data.error || "エラー")}</span>`;
+    }
+  } catch (e) {
+    msgEl.innerHTML = '<span class="msg msg-error">通信エラー</span>';
+  }
+});
 
 function esc(str) {
   const d = document.createElement("div");
