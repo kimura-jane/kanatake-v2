@@ -119,7 +119,6 @@ async function loadNotices(all) {
       `;
     }).join("");
 
-    // X埋め込みウィジェット読み込み
     if (el.querySelector(".twitter-tweet")) {
       loadTwitterWidget();
     }
@@ -137,7 +136,6 @@ async function loadNotices(all) {
 function renderNoticeBody(text) {
   if (!text) return "";
   const escaped = escapeHtml(text);
-  // X(Twitter)のURLを埋め込みに変換
   const xRegex = /https?:\/\/(x\.com|twitter\.com)\/\w+\/status\/(\d+)[^\s]*/g;
   const replaced = escaped.replace(xRegex, (url) => {
     return `<div class="notice-embed"><blockquote class="twitter-tweet"><a href="${url}"></a></blockquote></div>`;
@@ -225,7 +223,6 @@ document.getElementById("redeem-btn").addEventListener("click", async () => {
   }
 });
 
-// 女神のほほえみクーポン使用
 document.getElementById("megami-use-btn").addEventListener("click", async () => {
   if (!confirm("⚠️ 「女神のほほえみ」を使用済みにしますか？\n店主の目の前で押してください。")) return;
   try {
@@ -505,7 +502,6 @@ async function checkWelcomeCoupon() {
   } catch (e) { console.warn("welcome coupon check failed:", e); }
 }
 
-// 選択式UI
 document.querySelectorAll("#welcome-choices .welcome-choice-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll("#welcome-choices .welcome-choice-btn").forEach(b => b.classList.remove("selected"));
@@ -803,6 +799,8 @@ document.getElementById("review-submit-btn").addEventListener("click", async () 
 });
 
 // ===== 誕生月登録 =====
+let birthMonthLocked = false;
+
 async function loadBirthMonth() {
   try {
     const res = await fetch(`${API_BASE}/birthday-coupon/status`, {
@@ -812,15 +810,32 @@ async function loadBirthMonth() {
     });
     const data = await res.json();
     if (data.registered && data.birth_month) {
-      document.getElementById("birth-month-select").value = data.birth_month;
+      birthMonthLocked = true;
+      showBirthMonthLocked(data.birth_month);
     }
   } catch (e) {}
 }
 
+function showBirthMonthLocked(month) {
+  const container = document.getElementById("birth-month-form");
+  container.innerHTML = `
+    <div class="birth-month-locked">
+      <p class="birth-month-display">🎂 誕生月：<strong>${month}月</strong></p>
+      <p class="birth-month-note">※ 誕生月は変更できません</p>
+    </div>
+  `;
+}
+
 document.getElementById("birth-month-btn").addEventListener("click", async () => {
+  if (birthMonthLocked) return;
   const month = parseInt(document.getElementById("birth-month-select").value);
   const resultEl = document.getElementById("birth-month-result");
   if (!month) { resultEl.className = "result-text error"; resultEl.textContent = "月を選択してください"; return; }
+
+  if (!confirm(`誕生月を「${month}月」で登録しますか？\n\n⚠️ 一度登録すると変更できません。`)) return;
+
+  resultEl.className = "result-text loading";
+  resultEl.textContent = "登録中…";
 
   try {
     const res = await fetch(`${API_BASE}/birthday`, {
@@ -832,7 +847,16 @@ document.getElementById("birth-month-btn").addEventListener("click", async () =>
     if (data.ok) {
       resultEl.className = "result-text success";
       resultEl.textContent = `✅ ${month}月で登録しました！`;
+      birthMonthLocked = true;
+      showBirthMonthLocked(month);
       await checkBirthdayCoupon();
+    } else {
+      resultEl.className = "result-text error";
+      if (data.error === "birth_month already set") {
+        resultEl.textContent = "❌ 誕生月は変更できません";
+      } else {
+        resultEl.textContent = "❌ " + (data.error || "エラーが発生しました");
+      }
     }
   } catch (e) {
     resultEl.className = "result-text error";
