@@ -33,11 +33,13 @@ workflows:
       - name: Increment build number
         script: |
           cd $CM_BUILD_DIR/ios/App
-          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID")
-          if [ -z "$LATEST_BUILD_NUMBER" ]; then
+          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID" || echo "0")
+          if [ -z "$LATEST_BUILD_NUMBER" ] || [ "$LATEST_BUILD_NUMBER" = "null" ]; then
             LATEST_BUILD_NUMBER=0
           fi
-          agvtool new-version -all $(($LATEST_BUILD_NUMBER + 1))
+          NEW_BUILD_NUMBER=$(($LATEST_BUILD_NUMBER + 2))
+          echo "Setting build number to $NEW_BUILD_NUMBER"
+          agvtool new-version -all $NEW_BUILD_NUMBER
       - name: Build ipa for distribution
         script: |
           cd $CM_BUILD_DIR/ios/App
