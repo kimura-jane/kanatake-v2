@@ -21,6 +21,7 @@ workflows:
       - name: Sync web assets to iOS project
         script: |
           cd $CM_BUILD_DIR
+          chmod +x node_modules/.bin/cap
           npx cap sync ios
       - name: Resolve Swift Package Manager dependencies
         script: |
