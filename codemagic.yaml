@@ -11,7 +11,6 @@ workflows:
         bundle_identifier: com.kanatake.app
       vars:
         APP_STORE_APPLE_ID: "6760612778"
-        XCODE_WORKSPACE: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
       node: v20.14.0
     scripts:
@@ -19,10 +18,6 @@ workflows:
         script: |
           cd $CM_BUILD_DIR
           npm install
-      - name: Build web assets
-        script: |
-          cd $CM_BUILD_DIR
-          npm run build
       - name: Sync web assets to iOS project
         script: |
           cd $CM_BUILD_DIR
