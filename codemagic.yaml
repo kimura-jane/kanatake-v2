@@ -12,7 +12,7 @@ workflows:
       vars:
         APP_STORE_APPLE_ID: "6760612778"
         XCODE_SCHEME: "App"
-      node: v20.14.0
+      node: v22.0.0
     scripts:
       - name: Install npm dependencies
         script: |
