@@ -17,15 +17,18 @@ workflows:
     scripts:
       - name: Install npm dependencies
         script: |
+          cd $CM_BUILD_DIR
           npm install
       - name: Cocoapods installation
         script: |
-          cd ios/App && pod install
+          cd $CM_BUILD_DIR/ios/App && pod install
       - name: Build web assets
         script: |
+          cd $CM_BUILD_DIR
           npm run build
       - name: Sync web assets to iOS project
         script: |
+          cd $CM_BUILD_DIR
           npx cap sync ios
       - name: Set up code signing settings on Xcode project
         script: |
