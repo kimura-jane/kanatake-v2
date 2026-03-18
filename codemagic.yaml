@@ -11,7 +11,7 @@ workflows:
         bundle_identifier: com.kanatake.app
       vars:
         APP_STORE_APPLE_ID: "6760612778"
-        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
+        XCODE_WORKSPACE: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
       node: v20.14.0
     scripts:
@@ -19,9 +19,6 @@ workflows:
         script: |
           cd $CM_BUILD_DIR
           npm install
-      - name: Cocoapods installation
-        script: |
-          cd $CM_BUILD_DIR/ios/App && pod install
       - name: Build web assets
         script: |
           cd $CM_BUILD_DIR
@@ -30,6 +27,10 @@ workflows:
         script: |
           cd $CM_BUILD_DIR
           npx cap sync ios
+      - name: Resolve Swift Package Manager dependencies
+        script: |
+          cd $CM_BUILD_DIR/ios/App
+          xcodebuild -resolvePackageDependencies -project App.xcodeproj -scheme App
       - name: Set up code signing settings on Xcode project
         script: |
           xcode-project use-profiles
@@ -45,7 +46,7 @@ workflows:
         script: |
           cd $CM_BUILD_DIR/ios/App
           xcode-project build-ipa \
-            --workspace "$XCODE_WORKSPACE" \
+            --project "App.xcodeproj" \
             --scheme "$XCODE_SCHEME"
     artifacts:
       - ios/App/build/ios/ipa/App.ipa
