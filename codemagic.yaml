@@ -13,7 +13,7 @@ workflows:
         APP_STORE_APPLE_ID: "6760612778"
         XCODE_SCHEME: "App"
       node: v22.0.0
-      xcode: 16.2
+      xcode: 16.1
     scripts:
       - name: Install npm dependencies
         script: |
@@ -38,7 +38,7 @@ workflows:
           if [ -z "$LATEST_BUILD_NUMBER" ] || [ "$LATEST_BUILD_NUMBER" = "null" ]; then
             LATEST_BUILD_NUMBER=0
           fi
-          NEW_BUILD_NUMBER=$(($LATEST_BUILD_NUMBER + 2))
+          NEW_BUILD_NUMBER=$(($LATEST_BUILD_NUMBER + 1))
           echo "Setting build number to $NEW_BUILD_NUMBER"
           agvtool new-version -all $NEW_BUILD_NUMBER
       - name: Build ipa for distribution
