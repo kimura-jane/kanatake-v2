@@ -1,37 +1,48 @@
-import UIKit
-import Capacitor
-
-@UIApplicationMain
-class AppDelegate: UIResponder, UIApplicationDelegate {
-
-    var window: UIWindow?
-
-    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
-        return true
-    }
-
-    func applicationWillResignActive(_ application: UIApplication) {
-    }
-
-    func applicationDidEnterBackground(_ application: UIApplication) {
-    }
-
-    func applicationWillEnterForeground(_ application: UIApplication) {
-    }
-
-    func applicationDidBecomeActive(_ application: UIApplication) {
-    }
-
-    func applicationWillTerminate(_ application: UIApplication) {
-    }
-
-    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
-        return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
-    }
-
-    func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
-        return ApplicationDelegateProxy.shared.application(application, continue: userActivity, restorationHandler: restorationHandler)
-    }
-
-}
+CAPACITOR_DEBUG
+	$(CAPACITOR_DEBUG)
+	CFBundleDevelopmentRegion
+	en
+	CFBundleDisplayName
+	kanatake
+	CFBundleExecutable
+	$(EXECUTABLE_NAME)
+	CFBundleIconName
+	AppIcon
+	CFBundleIdentifier
+	$(PRODUCT_BUNDLE_IDENTIFIER)
+	CFBundleInfoDictionaryVersion
+	6.0
+	CFBundleName
+	$(PRODUCT_NAME)
+	CFBundlePackageType
+	APPL
+	CFBundleShortVersionString
+	$(MARKETING_VERSION)
+	CFBundleVersion
+	$(CURRENT_PROJECT_VERSION)
+	ITSAppUsesNonExemptEncryption
+	
+	LSRequiresIPhoneOS
+	
+	UILaunchStoryboardName
+	LaunchScreen
+	UIMainStoryboardFile
+	Main
+	UIRequiredDeviceCapabilities
+	
+		armv7
+	
+	UISupportedInterfaceOrientations
+	
+		UIInterfaceOrientationPortrait
+		UIInterfaceOrientationLandscapeLeft
+		UIInterfaceOrientationLandscapeRight
+	
+	UISupportedInterfaceOrientations~ipad
+	
+		UIInterfaceOrientationPortrait
+		UIInterfaceOrientationPortraitUpsideDown
+		UIInterfaceOrientationLandscapeLeft
+		UIInterfaceOrientationLandscapeRight
+	
+	UIViewControllerBasedStatusBarAppearance
