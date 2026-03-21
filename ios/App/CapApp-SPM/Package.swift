@@ -1,14 +1,11 @@
 // swift-tools-version: 5.9
 import PackageDescription
 
-// DO NOT MODIFY THIS FILE - managed by Capacitor CLI commands
 let package = Package(
     name: "CapApp-SPM",
     platforms: [.iOS(.v15)],
     products: [
-        .library(
-            name: "CapApp-SPM",
-            targets: ["CapApp-SPM"])
+        .library(name: "CapApp-SPM", targets: ["CapApp-SPM"])
     ],
     dependencies: [
         .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", exact: "8.2.0"),
@@ -20,7 +17,8 @@ let package = Package(
             dependencies: [
                 .product(name: "Capacitor", package: "capacitor-swift-pm"),
                 .product(name: "Cordova", package: "capacitor-swift-pm"),
-                .product(name: "CapacitorPushNotifications", package: "capacitor-plugins")
+                .product(name: "CapacitorPushNotifications", package: "capacitor-plugins"),
+                .product(name: "CapacitorPreferences", package: "capacitor-plugins")
             ]
         )
     ]
