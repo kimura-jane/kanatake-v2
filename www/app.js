@@ -1,21 +1,35 @@
 // ===== APNs プッシュ通知（iOSネイティブアプリ用） =====
 (async function initApnsPush() {
-  if (!window.Capacitor || !window.Capacitor.isNativePlatform()) {
+  if (!window.Capacitor) {
+    console.log('APNs: no Capacitor');
     return;
   }
-  var PushNotifications = window.Capacitor.Plugins.PushNotifications;
+  if (!window.Capacitor.isNativePlatform()) {
+    console.log('APNs: not native');
+    return;
+  }
+  var plugins = window.Capacitor.Plugins;
+  if (!plugins) {
+    alert('DEBUG: Capacitor.Plugins is null');
+    return;
+  }
+  var PushNotifications = plugins.PushNotifications;
   if (!PushNotifications) {
+    alert('DEBUG: PushNotifications plugin not found. Available: ' + Object.keys(plugins).join(', '));
     return;
   }
   try {
     var permission = await PushNotifications.requestPermissions();
+    alert('DEBUG: permission = ' + JSON.stringify(permission));
     if (permission.receive !== 'granted') {
       return;
     }
     await PushNotifications.register();
+    alert('DEBUG: register() called');
     PushNotifications.addListener('registration', async function(token) {
+      alert('DEBUG: token = ' + token.value.slice(0, 20) + '...');
       try {
-        await fetch('https://kanatae-push.la-kofu.workers.dev/apns-token', {
+        var res = await fetch('https://kanatae-push.la-kofu.workers.dev/apns-token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -23,12 +37,14 @@
             device_id: localStorage.getItem('kanatake_device_id') || ''
           })
         });
+        var data = await res.json();
+        alert('DEBUG: server response = ' + JSON.stringify(data));
       } catch (err) {
-        console.error('APNs token send error', err);
+        alert('DEBUG: fetch error = ' + err.message);
       }
     });
     PushNotifications.addListener('registrationError', function(error) {
-      console.error('APNs registration error', error);
+      alert('DEBUG: registrationError = ' + JSON.stringify(error));
     });
     PushNotifications.addListener('pushNotificationReceived', function(notification) {
       console.log('APNs notification received', notification);
@@ -37,7 +53,7 @@
       console.log('APNs notification tapped', action);
     });
   } catch (err) {
-    console.error('APNs init error', err);
+    alert('DEBUG: initApnsPush error = ' + err.message);
   }
 })();
 
