@@ -11,12 +11,13 @@
     PushNotifications.addListener('registration', async function(token) {
       console.log('APNs: token received');
       try {
+        var deviceId = await getDeviceIdAsync();
         await fetch('https://kanatae-push.la-kofu.workers.dev/apns-token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             token: token.value,
-            device_id: localStorage.getItem('kanatake_device_id') || ''
+            device_id: deviceId
           })
         });
       } catch (err) {
@@ -59,22 +60,59 @@ const CHOICE_EMOJI = {
   "ダンゴ": "🍡 ダンゴ"
 };
 
-// ===== 端末ID（複数箇所にバックアップ） =====
-function getDeviceId() {
-  // 優先: localStorage → sessionStorage → 新規生成
-  let id = localStorage.getItem("kanatake_device_id");
-  if (!id) {
-    id = sessionStorage.getItem("kanatake_device_id");
+// ===== ネイティブ判定 =====
+function isNativeApp() {
+  return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+}
+
+// ===== 端末ID（Preferences + localStorage 二重保存） =====
+const DEVICE_ID_KEY = "kanatake_device_id";
+
+async function getDeviceIdAsync() {
+  // 1. ネイティブアプリの場合: Preferences（消えない）を優先
+  if (isNativeApp() && window.Capacitor.Plugins.Preferences) {
+    try {
+      var result = await window.Capacitor.Plugins.Preferences.get({ key: DEVICE_ID_KEY });
+      if (result.value) {
+        // localStorage にもコピー（Web側との互換）
+        localStorage.setItem(DEVICE_ID_KEY, result.value);
+        return result.value;
+      }
+    } catch (e) {
+      console.warn('Preferences get failed:', e);
+    }
   }
+
+  // 2. localStorage から取得
+  var id = localStorage.getItem(DEVICE_ID_KEY);
+
+  // 3. sessionStorage から復元
+  if (!id) {
+    id = sessionStorage.getItem(DEVICE_ID_KEY);
+  }
+
+  // 4. 新規生成
   if (!id) {
     id = "dev_" + crypto.randomUUID();
   }
-  // 両方に保存して消失を防ぐ
-  localStorage.setItem("kanatake_device_id", id);
-  sessionStorage.setItem("kanatake_device_id", id);
+
+  // 5. 全部に保存
+  localStorage.setItem(DEVICE_ID_KEY, id);
+  sessionStorage.setItem(DEVICE_ID_KEY, id);
+
+  if (isNativeApp() && window.Capacitor.Plugins.Preferences) {
+    try {
+      await window.Capacitor.Plugins.Preferences.set({ key: DEVICE_ID_KEY, value: id });
+    } catch (e) {
+      console.warn('Preferences set failed:', e);
+    }
+  }
+
   return id;
 }
-const DEVICE_ID = getDeviceId();
+
+// 同期版（初期化完了後に使う）
+let DEVICE_ID = localStorage.getItem(DEVICE_ID_KEY) || sessionStorage.getItem(DEVICE_ID_KEY) || "";
 
 // ===== ページナビ =====
 const navBtns = document.querySelectorAll(".nav-btn");
@@ -110,8 +148,16 @@ function switchPage(page) {
 
 // ===== 初期化 =====
 document.addEventListener("DOMContentLoaded", async () => {
+  // device_id を確実に取得（Preferences優先）
+  DEVICE_ID = await getDeviceIdAsync();
+
   await registerDevice();
   document.getElementById("device-id-display").textContent = DEVICE_ID;
+
+  // ネイティブアプリの場合、Web Push設定セクションを隠す
+  if (isNativeApp()) {
+    hideWebPushUI();
+  }
 
   initStampGrid();
   await loadPoints();
@@ -131,6 +177,31 @@ document.addEventListener("DOMContentLoaded", async () => {
   syncPlaceUI();
   registerSW().catch(() => {});
 });
+
+// ===== ネイティブアプリ用: Web Push UI を隠す =====
+function hideWebPushUI() {
+  // 通知設定セクション全体を「APNs自動登録済み」に変える
+  var pushSection = document.getElementById("pushBtn");
+  if (pushSection) pushSection.style.display = "none";
+  var pushStatus = document.getElementById("pushStatus");
+  if (pushStatus) {
+    pushStatus.className = "result-text success";
+    pushStatus.textContent = "✅ 通知は自動で有効です（APNs）";
+  }
+  // 通知時間・場所の選択UIも隠す
+  var notifySettings = document.querySelector(".notify-hour-section");
+  if (notifySettings) notifySettings.style.display = "none";
+  var placeList = document.getElementById("placeList");
+  if (placeList) placeList.style.display = "none";
+  var placeAllWrap = document.getElementById("place_all");
+  if (placeAllWrap) {
+    var parentLabel = placeAllWrap.closest(".settings-option");
+    if (parentLabel) parentLabel.style.display = "none";
+  }
+  // 「すべての出店を通知する」説明も隠す
+  var placeNote = document.querySelector(".place-note");
+  if (placeNote) placeNote.style.display = "none";
+}
 
 // ===== デバイス登録 =====
 async function registerDevice() {
@@ -537,7 +608,6 @@ function getTodaySpot() {
 let welcomeSelectedChoice = null;
 
 async function checkWelcomeCoupon() {
-  // 初期状態: コンテンツを非表示にしてAPIの結果を待つ
   const content = document.getElementById("welcome-coupon-content");
   const used = document.getElementById("welcome-coupon-used");
   try {
@@ -556,7 +626,6 @@ async function checkWelcomeCoupon() {
     }
   } catch (e) {
     console.warn("welcome coupon check failed:", e);
-    // エラー時はコンテンツを表示（オフラインでも見える）
     content.style.display = "block";
     used.style.display = "none";
   }
@@ -983,13 +1052,15 @@ document.getElementById("cache-clear-btn").addEventListener("click", async () =>
 
 // ===== 通知設定 =====
 function syncPlaceUI() {
-  const all = document.getElementById("place_all").checked;
+  const all = document.getElementById("place_all");
+  if (!all) return;
+  const isAll = all.checked;
   document.querySelectorAll("#placeList .settings-option").forEach(opt => {
-    opt.classList.toggle("disabled", all);
+    opt.classList.toggle("disabled", isAll);
   });
   document.querySelectorAll(".placeChk").forEach(chk => {
-    chk.disabled = all;
-    if (all) chk.checked = false;
+    chk.disabled = isAll;
+    if (isAll) chk.checked = false;
   });
 }
 
