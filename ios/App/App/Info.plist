@@ -28,6 +28,19 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+
+	<!-- カメラ -->
+	<key>NSCameraUsageDescription</key>
+	<string>写真を撮影するためにカメラを使用します</string>
+
+	<!-- 位置情報（使用中のみ） -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>現在地を取得するために位置情報を使用します</string>
+
+	<!-- 位置情報（常時取得が必要な場合） -->
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>バックグラウンドでも位置情報を取得するために使用します</string>
+
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
