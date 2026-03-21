@@ -1,3 +1,46 @@
+// ===== APNs プッシュ通知（iOSネイティブアプリ用） =====
+(async function initApnsPush() {
+  if (!window.Capacitor || !window.Capacitor.isNativePlatform()) {
+    return;
+  }
+  var PushNotifications = window.Capacitor.Plugins.PushNotifications;
+  if (!PushNotifications) {
+    return;
+  }
+  try {
+    var permission = await PushNotifications.requestPermissions();
+    if (permission.receive !== 'granted') {
+      return;
+    }
+    await PushNotifications.register();
+    PushNotifications.addListener('registration', async function(token) {
+      try {
+        await fetch('https://kanatae-push.la-kofu.workers.dev/apns-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            token: token.value,
+            device_id: localStorage.getItem('kanatake_device_id') || ''
+          })
+        });
+      } catch (err) {
+        console.error('APNs token send error', err);
+      }
+    });
+    PushNotifications.addListener('registrationError', function(error) {
+      console.error('APNs registration error', error);
+    });
+    PushNotifications.addListener('pushNotificationReceived', function(notification) {
+      console.log('APNs notification received', notification);
+    });
+    PushNotifications.addListener('pushNotificationActionPerformed', function(action) {
+      console.log('APNs notification tapped', action);
+    });
+  } catch (err) {
+    console.error('APNs init error', err);
+  }
+})();
+
 // ===== 設定 =====
 const API_BASE = "https://kanatake-api.la-kofu.workers.dev";
 const PUSH_API_BASE = "https://kanatae-push.la-kofu.workers.dev";
