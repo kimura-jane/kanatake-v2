@@ -24,6 +24,22 @@ workflows:
           cd $CM_BUILD_DIR
           chmod +x node_modules/.bin/cap
           npx cap sync ios
+      - name: Set Push Notifications entitlement
+        script: |
+          cd $CM_BUILD_DIR/ios/App
+          plutil -replace CODE_SIGN_ENTITLEMENTS -string "App/App.entitlements" App.xcodeproj/project.pbxproj 2>/dev/null || true
+          # PlistBuddyで直接Xcodeプロジェクトに設定
+          ruby -e '
+            path = "App.xcodeproj/project.pbxproj"
+            content = File.read(path)
+            unless content.include?("CODE_SIGN_ENTITLEMENTS")
+              content.gsub!(/CODE_SIGN_IDENTITY/, "CODE_SIGN_ENTITLEMENTS = \"App/App.entitlements\";\n\t\t\t\tCODE_SIGN_IDENTITY")
+              File.write(path, content)
+              puts "Added CODE_SIGN_ENTITLEMENTS"
+            else
+              puts "CODE_SIGN_ENTITLEMENTS already exists"
+            end
+          '
       - name: Resolve Swift Package Manager dependencies
         script: |
           cd $CM_BUILD_DIR/ios/App
@@ -34,7 +50,7 @@ workflows:
       - name: Increment build number
         script: |
           cd $CM_BUILD_DIR/ios/App
-          agvtool new-version -all 11
+          agvtool new-version -all 12
       - name: Build ipa for distribution
         script: |
           cd $CM_BUILD_DIR/ios/App
