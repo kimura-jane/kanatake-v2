@@ -19,13 +19,7 @@
     return;
   }
   try {
-    var permission = await PushNotifications.requestPermissions();
-    alert('DEBUG: permission = ' + JSON.stringify(permission));
-    if (permission.receive !== 'granted') {
-      return;
-    }
-    await PushNotifications.register();
-    alert('DEBUG: register() called');
+    // ★ リスナーを先に登録（register()より前！）
     PushNotifications.addListener('registration', async function(token) {
       alert('DEBUG: token = ' + token.value.slice(0, 20) + '...');
       try {
@@ -52,6 +46,15 @@
     PushNotifications.addListener('pushNotificationActionPerformed', function(action) {
       console.log('APNs notification tapped', action);
     });
+
+    // ★ リスナー登録後に許可＆register
+    var permission = await PushNotifications.requestPermissions();
+    alert('DEBUG: permission = ' + JSON.stringify(permission));
+    if (permission.receive !== 'granted') {
+      return;
+    }
+    await PushNotifications.register();
+    alert('DEBUG: register() called');
   } catch (err) {
     alert('DEBUG: initApnsPush error = ' + err.message);
   }
