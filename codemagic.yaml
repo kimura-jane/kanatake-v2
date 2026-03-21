@@ -38,7 +38,7 @@ workflows:
           if [ -z "$LATEST_BUILD_NUMBER" ] || [ "$LATEST_BUILD_NUMBER" = "null" ]; then
             LATEST_BUILD_NUMBER=0
           fi
-          NEW_BUILD_NUMBER=$(($LATEST_BUILD_NUMBER + 5))
+          NEW_BUILD_NUMBER=$(($LATEST_BUILD_NUMBER + 1))
           echo "Setting build number to $NEW_BUILD_NUMBER"
           agvtool new-version -all $NEW_BUILD_NUMBER
       - name: Build ipa for distribution
