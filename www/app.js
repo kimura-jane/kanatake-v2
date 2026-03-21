@@ -1,29 +1,17 @@
 // ===== APNs プッシュ通知（iOSネイティブアプリ用） =====
 (async function initApnsPush() {
-  if (!window.Capacitor) {
-    console.log('APNs: no Capacitor');
-    return;
-  }
-  if (!window.Capacitor.isNativePlatform()) {
-    console.log('APNs: not native');
-    return;
-  }
+  if (!window.Capacitor) return;
+  if (!window.Capacitor.isNativePlatform()) return;
   var plugins = window.Capacitor.Plugins;
-  if (!plugins) {
-    alert('DEBUG: Capacitor.Plugins is null');
-    return;
-  }
+  if (!plugins) return;
   var PushNotifications = plugins.PushNotifications;
-  if (!PushNotifications) {
-    alert('DEBUG: PushNotifications plugin not found. Available: ' + Object.keys(plugins).join(', '));
-    return;
-  }
+  if (!PushNotifications) return;
+
   try {
-    // ★ リスナーを先に登録（register()より前！）
     PushNotifications.addListener('registration', async function(token) {
-      alert('DEBUG: token = ' + token.value.slice(0, 20) + '...');
+      console.log('APNs: token received');
       try {
-        var res = await fetch('https://kanatae-push.la-kofu.workers.dev/apns-token', {
+        await fetch('https://kanatae-push.la-kofu.workers.dev/apns-token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -31,32 +19,25 @@
             device_id: localStorage.getItem('kanatake_device_id') || ''
           })
         });
-        var data = await res.json();
-        alert('DEBUG: server response = ' + JSON.stringify(data));
       } catch (err) {
-        alert('DEBUG: fetch error = ' + err.message);
+        console.warn('APNs: token send failed', err);
       }
     });
     PushNotifications.addListener('registrationError', function(error) {
-      alert('DEBUG: registrationError = ' + JSON.stringify(error));
+      console.warn('APNs: registrationError', error);
     });
     PushNotifications.addListener('pushNotificationReceived', function(notification) {
-      console.log('APNs notification received', notification);
+      console.log('APNs: notification received', notification);
     });
     PushNotifications.addListener('pushNotificationActionPerformed', function(action) {
-      console.log('APNs notification tapped', action);
+      console.log('APNs: notification tapped', action);
     });
 
-    // ★ リスナー登録後に許可＆register
     var permission = await PushNotifications.requestPermissions();
-    alert('DEBUG: permission = ' + JSON.stringify(permission));
-    if (permission.receive !== 'granted') {
-      return;
-    }
+    if (permission.receive !== 'granted') return;
     await PushNotifications.register();
-    alert('DEBUG: register() called');
   } catch (err) {
-    alert('DEBUG: initApnsPush error = ' + err.message);
+    console.warn('APNs: init error', err);
   }
 })();
 
@@ -78,13 +59,19 @@ const CHOICE_EMOJI = {
   "ダンゴ": "🍡 ダンゴ"
 };
 
-// ===== 端末ID =====
+// ===== 端末ID（複数箇所にバックアップ） =====
 function getDeviceId() {
+  // 優先: localStorage → sessionStorage → 新規生成
   let id = localStorage.getItem("kanatake_device_id");
   if (!id) {
-    id = "dev_" + crypto.randomUUID();
-    localStorage.setItem("kanatake_device_id", id);
+    id = sessionStorage.getItem("kanatake_device_id");
   }
+  if (!id) {
+    id = "dev_" + crypto.randomUUID();
+  }
+  // 両方に保存して消失を防ぐ
+  localStorage.setItem("kanatake_device_id", id);
+  sessionStorage.setItem("kanatake_device_id", id);
   return id;
 }
 const DEVICE_ID = getDeviceId();
@@ -550,6 +537,9 @@ function getTodaySpot() {
 let welcomeSelectedChoice = null;
 
 async function checkWelcomeCoupon() {
+  // 初期状態: コンテンツを非表示にしてAPIの結果を待つ
+  const content = document.getElementById("welcome-coupon-content");
+  const used = document.getElementById("welcome-coupon-used");
   try {
     const res = await fetch(`${API_BASE}/welcome-coupon/status`, {
       method: "POST",
@@ -558,10 +548,18 @@ async function checkWelcomeCoupon() {
     });
     const data = await res.json();
     if (data.used) {
-      document.getElementById("welcome-coupon-content").style.display = "none";
-      document.getElementById("welcome-coupon-used").style.display = "block";
+      content.style.display = "none";
+      used.style.display = "block";
+    } else {
+      content.style.display = "block";
+      used.style.display = "none";
     }
-  } catch (e) { console.warn("welcome coupon check failed:", e); }
+  } catch (e) {
+    console.warn("welcome coupon check failed:", e);
+    // エラー時はコンテンツを表示（オフラインでも見える）
+    content.style.display = "block";
+    used.style.display = "none";
+  }
 }
 
 document.querySelectorAll("#welcome-choices .welcome-choice-btn").forEach(btn => {
