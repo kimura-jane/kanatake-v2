@@ -69,12 +69,10 @@ function isNativeApp() {
 const DEVICE_ID_KEY = "kanatake_device_id";
 
 async function getDeviceIdAsync() {
-  // 1. ネイティブアプリの場合: Preferences（消えない）を優先
   if (isNativeApp() && window.Capacitor.Plugins.Preferences) {
     try {
       var result = await window.Capacitor.Plugins.Preferences.get({ key: DEVICE_ID_KEY });
       if (result.value) {
-        // localStorage にもコピー（Web側との互換）
         localStorage.setItem(DEVICE_ID_KEY, result.value);
         return result.value;
       }
@@ -83,20 +81,14 @@ async function getDeviceIdAsync() {
     }
   }
 
-  // 2. localStorage から取得
   var id = localStorage.getItem(DEVICE_ID_KEY);
-
-  // 3. sessionStorage から復元
   if (!id) {
     id = sessionStorage.getItem(DEVICE_ID_KEY);
   }
-
-  // 4. 新規生成
   if (!id) {
     id = "dev_" + crypto.randomUUID();
   }
 
-  // 5. 全部に保存
   localStorage.setItem(DEVICE_ID_KEY, id);
   sessionStorage.setItem(DEVICE_ID_KEY, id);
 
@@ -111,7 +103,6 @@ async function getDeviceIdAsync() {
   return id;
 }
 
-// 同期版（初期化完了後に使う）
 let DEVICE_ID = localStorage.getItem(DEVICE_ID_KEY) || sessionStorage.getItem(DEVICE_ID_KEY) || "";
 
 // ===== ページナビ =====
@@ -148,15 +139,13 @@ function switchPage(page) {
 
 // ===== 初期化 =====
 document.addEventListener("DOMContentLoaded", async () => {
-  // device_id を確実に取得（Preferences優先）
   DEVICE_ID = await getDeviceIdAsync();
 
   await registerDevice();
   document.getElementById("device-id-display").textContent = DEVICE_ID;
 
-  // ネイティブアプリの場合、Web Push設定セクションを隠す
   if (isNativeApp()) {
-    hideWebPushUI();
+    setupNativePushUI();
   }
 
   initStampGrid();
@@ -175,32 +164,64 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadBirthMonth();
 
   syncPlaceUI();
-  registerSW().catch(() => {});
+  if (!isNativeApp()) {
+    registerSW().catch(() => {});
+  }
 });
 
-// ===== ネイティブアプリ用: Web Push UI を隠す =====
-function hideWebPushUI() {
-  // 通知設定セクション全体を「APNs自動登録済み」に変える
-  var pushSection = document.getElementById("pushBtn");
-  if (pushSection) pushSection.style.display = "none";
+// ===== ネイティブアプリ用: Web Push ボタンだけ変更、時間・場所UIは残す =====
+function setupNativePushUI() {
+  // 「通知を受け取る」ボタンのテキストを「通知設定を保存」に変える
+  var pushBtn = document.getElementById("pushBtn");
+  if (pushBtn) {
+    pushBtn.textContent = "🔔 通知設定を保存";
+    // 元のイベントリスナーを上書き
+    pushBtn.replaceWith(pushBtn.cloneNode(true));
+    var newBtn = document.getElementById("pushBtn");
+    newBtn.addEventListener("click", saveApnsSettings);
+  }
+
+  // ステータス表示
   var pushStatus = document.getElementById("pushStatus");
   if (pushStatus) {
     pushStatus.className = "result-text success";
     pushStatus.textContent = "✅ 通知は自動で有効です（APNs）";
   }
-  // 通知時間・場所の選択UIも隠す
-  var notifySettings = document.querySelector(".notify-hour-section");
-  if (notifySettings) notifySettings.style.display = "none";
-  var placeList = document.getElementById("placeList");
-  if (placeList) placeList.style.display = "none";
-  var placeAllWrap = document.getElementById("place_all");
-  if (placeAllWrap) {
-    var parentLabel = placeAllWrap.closest(".settings-option");
-    if (parentLabel) parentLabel.style.display = "none";
+}
+
+async function saveApnsSettings() {
+  var statusEl = document.getElementById("pushStatus");
+  statusEl.className = "result-text loading";
+  statusEl.textContent = "⏳ 保存中…";
+
+  try {
+    var hour = document.querySelector('input[name="notifyHour"]:checked');
+    var hourVal = hour ? parseInt(hour.value) : 21;
+
+    var allPlaces = document.getElementById("place_all").checked;
+    var places = allPlaces ? [] : [...document.querySelectorAll(".placeChk:checked")].map(x => x.value);
+
+    var res = await fetch(PUSH_API_BASE + "/apns-settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        device_id: DEVICE_ID,
+        hour: hourVal,
+        places: places
+      })
+    });
+    var data = await res.json();
+    if (data.ok) {
+      statusEl.className = "result-text success";
+      statusEl.textContent = "✅ 通知設定を保存しました！";
+    } else {
+      statusEl.className = "result-text error";
+      statusEl.textContent = "❌ " + (data.error || "保存に失敗しました");
+    }
+  } catch (e) {
+    statusEl.className = "result-text error";
+    statusEl.textContent = "❌ 通信エラー";
   }
-  // 「すべての出店を通知する」説明も隠す
-  var placeNote = document.querySelector(".place-note");
-  if (placeNote) placeNote.style.display = "none";
 }
 
 // ===== デバイス登録 =====
