@@ -46,6 +46,7 @@
     .info-table { width: 100%; font-size: 13px; margin: 10px 0; }
     .info-table td { padding: 6px 8px; border-bottom: 1px solid #f0f0f0; }
     .info-table td:first-child { font-weight: 700; color: #666; white-space: nowrap; width: 120px; }
+    .coupon-thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; margin-right: 8px; vertical-align: middle; }
     #admin-content { display: none; }
   </style>
 </head>
@@ -79,11 +80,14 @@
       </div>
     </div>
 
-    <!-- クーポン管理 -->
+    <!-- クーポン管理 ★変更 -->
     <div class="tab-content" id="tab-coupons">
       <div class="card">
         <h2>クーポン発行</h2>
-        <input type="text" id="coupon-prize" placeholder="特典名（例: おにぎり1個）">
+        <input type="text" id="coupon-name" placeholder="クーポン名（例: 春の感謝クーポン）">
+        <input type="text" id="coupon-prize" placeholder="特典名（例: おにぎり1個無料）">
+        <input type="text" id="coupon-image" placeholder="画像URL（例: https://...jpg）任意">
+        <div id="coupon-image-preview" style="margin-bottom:8px;"></div>
         <button class="btn btn-primary" id="coupon-create-btn">発行する</button>
         <p id="coupon-create-msg"></p>
       </div>
@@ -237,20 +241,39 @@ async function deleteReview(id) {
   loadAdminReviews();
 }
 
-// ===== クーポン管理 =====
+// ===== クーポン管理 ★変更 =====
+
+// 画像URLプレビュー
+document.getElementById("coupon-image").addEventListener("input", (e) => {
+  const url = e.target.value.trim();
+  const preview = document.getElementById("coupon-image-preview");
+  if (url && (url.startsWith("http://") || url.startsWith("https://"))) {
+    preview.innerHTML = `<img src="${esc(url)}" style="max-width:120px;max-height:120px;border-radius:8px;border:2px solid #ddd;" onerror="this.style.display='none'">`;
+  } else {
+    preview.innerHTML = "";
+  }
+});
+
 document.getElementById("coupon-create-btn").addEventListener("click", async () => {
+  const name = document.getElementById("coupon-name").value.trim();
   const prize = document.getElementById("coupon-prize").value.trim();
+  const image = document.getElementById("coupon-image").value.trim();
   const msgEl = document.getElementById("coupon-create-msg");
+
   if (!prize) { msgEl.innerHTML = '<span class="msg msg-error">特典名を入力</span>'; return; }
+
   try {
     const res = await fetch(`${API_BASE}/admin/coupons`, {
       method: "POST", headers: authHeaders(),
-      body: JSON.stringify({ prize })
+      body: JSON.stringify({ prize, name: name || prize, image })
     });
     const data = await res.json();
     if (data.ok) {
-      msgEl.innerHTML = `<span class="msg msg-success">発行完了: ${data.code}</span>`;
+      msgEl.innerHTML = `<span class="msg msg-success">発行完了！ コード: <strong>${data.code}</strong></span>`;
+      document.getElementById("coupon-name").value = "";
       document.getElementById("coupon-prize").value = "";
+      document.getElementById("coupon-image").value = "";
+      document.getElementById("coupon-image-preview").innerHTML = "";
       loadAdminCoupons();
     }
   } catch (e) { msgEl.innerHTML = '<span class="msg msg-error">通信エラー</span>'; }
@@ -264,9 +287,15 @@ async function loadAdminCoupons() {
     if (!data.coupons || !data.coupons.length) { el.innerHTML = "<h2>発行済みクーポン</h2><p>なし</p>"; return; }
     el.innerHTML = "<h2>発行済みクーポン</h2>" + data.coupons.map(c => `
       <div class="item">
-        <strong>${c.code}</strong> → ${esc(c.prize)}
+        <div style="display:flex;align-items:center;">
+          ${c.image ? `<img src="${esc(c.image)}" class="coupon-thumb" onerror="this.style.display='none'">` : ""}
+          <div>
+            <strong>${esc(c.name || c.prize)}</strong><br>
+            <span style="font-size:12px;color:#666;">コード: ${c.code} ／ 特典: ${esc(c.prize)}</span>
+          </div>
+        </div>
         <span class="badge ${c.used ? "badge-used" : "badge-unused"}">${c.used ? "使用済" : "未使用"}</span>
-        <div class="item-meta">${c.created_at || ""} ${c.used_by_device ? "| 使用: " + c.used_by_device : ""}</div>
+        <div class="item-meta">${c.created_at || ""} ${c.used_by_device ? "| 取得: " + c.used_by_device : ""}</div>
       </div>
     `).join("");
   } catch (e) { el.innerHTML = "<h2>発行済みクーポン</h2><p>読み込み失敗</p>"; }
@@ -359,23 +388,15 @@ document.getElementById("search-device-btn").addEventListener("click", async () 
   const msgEl = document.getElementById("search-device-msg");
   const resultEl = document.getElementById("device-info-result");
   resultEl.innerHTML = "";
-
   if (!deviceId) { msgEl.innerHTML = '<span class="msg msg-error">端末IDを入力</span>'; return; }
-
   msgEl.innerHTML = '<span class="msg msg-info">検索中…</span>';
-
   try {
     const res = await fetch(`${API_BASE}/admin/device-info`, {
       method: "POST", headers: authHeaders(),
       body: JSON.stringify({ device_id: deviceId })
     });
     const data = await res.json();
-
-    if (data.error) {
-      msgEl.innerHTML = `<span class="msg msg-error">${esc(data.error)}</span>`;
-      return;
-    }
-
+    if (data.error) { msgEl.innerHTML = `<span class="msg msg-error">${esc(data.error)}</span>`; return; }
     msgEl.innerHTML = '<span class="msg msg-success">端末情報を取得しました</span>';
     resultEl.innerHTML = `
       <table class="info-table">
@@ -390,9 +411,7 @@ document.getElementById("search-device-btn").addEventListener("click", async () 
       </table>
       <button class="btn btn-primary btn-sm" onclick="copyPointsToForm('${esc(data.device_id)}', ${data.current_points})">このポイント数を付与欄にコピー</button>
     `;
-  } catch (e) {
-    msgEl.innerHTML = '<span class="msg msg-error">通信エラー</span>';
-  }
+  } catch (e) { msgEl.innerHTML = '<span class="msg msg-error">通信エラー</span>'; }
 });
 
 function copyPointsToForm(deviceId, points) {
@@ -406,20 +425,16 @@ document.getElementById("add-points-btn").addEventListener("click", async () => 
   const deviceId = document.getElementById("add-points-device-id").value.trim();
   const points = parseInt(document.getElementById("add-points-amount").value);
   const msgEl = document.getElementById("add-points-msg");
-
   if (!deviceId) { msgEl.innerHTML = '<span class="msg msg-error">端末IDを入力</span>'; return; }
   if (!points || points < 1 || points > 20) { msgEl.innerHTML = '<span class="msg msg-error">ポイントは1〜20で入力</span>'; return; }
   if (!confirm(`端末「${deviceId}」に ${points} ポイント付与しますか？`)) return;
-
   msgEl.innerHTML = '<span class="msg msg-info">付与中…</span>';
-
   try {
     const res = await fetch(`${API_BASE}/admin/add-points`, {
       method: "POST", headers: authHeaders(),
       body: JSON.stringify({ device_id: deviceId, points })
     });
     const data = await res.json();
-
     if (data.ok) {
       msgEl.innerHTML = `<span class="msg msg-success">付与完了！ 現在のポイント: ${data.current_points}</span>`;
       document.getElementById("add-points-device-id").value = "";
@@ -427,9 +442,7 @@ document.getElementById("add-points-btn").addEventListener("click", async () => 
     } else {
       msgEl.innerHTML = `<span class="msg msg-error">${esc(data.error || "エラー")}</span>`;
     }
-  } catch (e) {
-    msgEl.innerHTML = '<span class="msg msg-error">通信エラー</span>';
-  }
+  } catch (e) { msgEl.innerHTML = '<span class="msg msg-error">通信エラー</span>'; }
 });
 
 function esc(str) {
