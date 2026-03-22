@@ -860,3 +860,42 @@ html, body {
   background: #fff5f5;
   border-radius: 8px;
 }
+/* 保有クーポンカード */
+.my-coupon-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #fff9e6;
+  border-radius: 12px;
+  margin-bottom: 10px;
+}
+.my-coupon-card.used {
+  background: #f0f0f0;
+  opacity: 0.6;
+}
+.my-coupon-img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.my-coupon-info {
+  flex: 1;
+}
+.my-coupon-name {
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+.my-coupon-prize {
+  font-size: 12px;
+  color: #666;
+}
+.my-coupon-status {
+  font-size: 11px;
+  color: #999;
+  margin-top: 4px;
+}
+
