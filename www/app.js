@@ -15,14 +15,9 @@
         await fetch('https://kanatae-push.la-kofu.workers.dev/apns-token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            token: token.value,
-            device_id: deviceId
-          })
+          body: JSON.stringify({ token: token.value, device_id: deviceId })
         });
-      } catch (err) {
-        console.warn('APNs: token send failed', err);
-      }
+      } catch (err) { console.warn('APNs: token send failed', err); }
     });
     PushNotifications.addListener('registrationError', function(error) {
       console.warn('APNs: registrationError', error);
@@ -37,9 +32,7 @@
     var permission = await PushNotifications.requestPermissions();
     if (permission.receive !== 'granted') return;
     await PushNotifications.register();
-  } catch (err) {
-    console.warn('APNs: init error', err);
-  }
+  } catch (err) { console.warn('APNs: init error', err); }
 })();
 
 // ===== 設定 =====
@@ -76,7 +69,6 @@ async function getDeviceIdAsync() {
 }
 
 async function _getDeviceIdCore() {
-  // 1. Preferences（ネイティブストレージ）を最優先で読む
   if (isNativeApp() && window.Capacitor.Plugins.Preferences) {
     try {
       var result = await window.Capacitor.Plugins.Preferences.get({ key: DEVICE_ID_KEY });
@@ -85,32 +77,20 @@ async function _getDeviceIdCore() {
         sessionStorage.setItem(DEVICE_ID_KEY, result.value);
         return result.value;
       }
-    } catch (e) {
-      console.warn('Preferences get failed:', e);
-    }
+    } catch (e) { console.warn('Preferences get failed:', e); }
   }
 
-  // 2. localStorage
   var id = localStorage.getItem(DEVICE_ID_KEY);
-  // 3. sessionStorage
-  if (!id) {
-    id = sessionStorage.getItem(DEVICE_ID_KEY);
-  }
-  // 4. 新規生成
-  if (!id) {
-    id = "dev_" + crypto.randomUUID();
-  }
+  if (!id) id = sessionStorage.getItem(DEVICE_ID_KEY);
+  if (!id) id = "dev_" + crypto.randomUUID();
 
-  // すべてに保存
   localStorage.setItem(DEVICE_ID_KEY, id);
   sessionStorage.setItem(DEVICE_ID_KEY, id);
 
   if (isNativeApp() && window.Capacitor.Plugins.Preferences) {
     try {
       await window.Capacitor.Plugins.Preferences.set({ key: DEVICE_ID_KEY, value: id });
-    } catch (e) {
-      console.warn('Preferences set failed:', e);
-    }
+    } catch (e) { console.warn('Preferences set failed:', e); }
   }
 
   return id;
@@ -127,9 +107,7 @@ let mapInstance = null;
 let markersArray = [];
 
 navBtns.forEach(btn => {
-  btn.addEventListener("click", () => {
-    switchPage(btn.dataset.page);
-  });
+  btn.addEventListener("click", () => { switchPage(btn.dataset.page); });
 });
 
 function switchPage(page) {
@@ -145,6 +123,7 @@ function switchPage(page) {
   }
   if (page === "reviews") loadReviews();
   if (page === "settings") loadCheckinHistory();
+  if (page === "coupon") loadMyCoupons();
 
   const pageEl = document.getElementById(`page-${page}`);
   if (pageEl) pageEl.scrollTop = 0;
@@ -174,6 +153,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   await checkWelcomeCoupon();
   await checkBirthdayCoupon();
+  await loadMyCoupons();
   await loadBirthMonth();
 
   syncPlaceUI();
@@ -182,7 +162,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 });
 
-// ===== ネイティブアプリ用: Web Push ボタンだけ変更、時間・場所UIは残す =====
+// ===== ネイティブアプリ用: Push UI =====
 function setupNativePushUI() {
   var pushBtn = document.getElementById("pushBtn");
   if (pushBtn) {
@@ -208,7 +188,6 @@ async function saveApnsSettings() {
     var hour = document.querySelector('input[name="notifyHour"]:checked');
     var hourVal = hour ? parseInt(hour.value) : 21;
 
-    // OFF が選ばれている場合
     var isOff = document.getElementById("place_off").checked;
     var allPlaces = document.getElementById("place_all").checked;
     var places;
@@ -223,11 +202,7 @@ async function saveApnsSettings() {
     var res = await fetch(PUSH_API_BASE + "/apns-settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        device_id: DEVICE_ID,
-        hour: hourVal,
-        places: places
-      })
+      body: JSON.stringify({ device_id: DEVICE_ID, hour: hourVal, places: places })
     });
     var data = await res.json();
     if (data.ok) {
@@ -244,6 +219,57 @@ async function saveApnsSettings() {
   } catch (e) {
     statusEl.className = "result-text error";
     statusEl.textContent = "❌ 通信エラー";
+  }
+}
+
+// ===== 場所 UI 排他制御 =====
+function syncPlaceUI() {
+  var offChk = document.getElementById("place_off");
+  var allChk = document.getElementById("place_all");
+  var placeChks = document.querySelectorAll(".placeChk");
+  var placeList = document.getElementById("placeList");
+
+  if (!offChk || !allChk) return;
+
+  offChk.addEventListener("change", function() {
+    if (this.checked) {
+      allChk.checked = false;
+      allChk.disabled = true;
+      placeChks.forEach(c => { c.checked = false; c.disabled = true; });
+      if (placeList) placeList.style.opacity = "0.4";
+    } else {
+      allChk.disabled = false;
+      allChk.checked = true;
+      placeChks.forEach(c => { c.disabled = true; });
+      if (placeList) placeList.style.opacity = "0.4";
+    }
+  });
+
+  allChk.addEventListener("change", function() {
+    if (this.checked) {
+      offChk.checked = false;
+      placeChks.forEach(c => { c.checked = false; c.disabled = true; });
+      if (placeList) placeList.style.opacity = "0.4";
+    } else {
+      placeChks.forEach(c => { c.disabled = false; });
+      if (placeList) placeList.style.opacity = "1";
+    }
+  });
+
+  placeChks.forEach(c => {
+    c.addEventListener("change", function() {
+      var anyChecked = [...placeChks].some(x => x.checked);
+      if (anyChecked) {
+        allChk.checked = false;
+        offChk.checked = false;
+      }
+    });
+  });
+
+  // 初期状態
+  if (allChk.checked) {
+    placeChks.forEach(c => { c.disabled = true; });
+    if (placeList) placeList.style.opacity = "0.4";
   }
 }
 
@@ -283,9 +309,7 @@ async function loadNotices(all) {
       `;
     }).join("");
 
-    if (el.querySelector(".twitter-tweet")) {
-      loadTwitterWidget();
-    }
+    if (el.querySelector(".twitter-tweet")) loadTwitterWidget();
 
     if (!all && data.notices.length >= 3) {
       moreBtn.style.display = "block";
@@ -301,17 +325,13 @@ function renderNoticeBody(text) {
   if (!text) return "";
   const escaped = escapeHtml(text);
   const xRegex = /https?:\/\/(x\.com|twitter\.com)\/\w+\/status\/(\d+)[^\s]*/g;
-  const replaced = escaped.replace(xRegex, (url) => {
+  return escaped.replace(xRegex, (url) => {
     return `<div class="notice-embed"><blockquote class="twitter-tweet"><a href="${url}"></a></blockquote></div>`;
   });
-  return replaced;
 }
 
 function loadTwitterWidget() {
-  if (window.twttr) {
-    window.twttr.widgets.load();
-    return;
-  }
+  if (window.twttr) { window.twttr.widgets.load(); return; }
   const s = document.createElement("script");
   s.src = "https://platform.twitter.com/widgets.js";
   s.async = true;
@@ -346,23 +366,18 @@ async function loadPoints() {
     updateStampUI(data.current_points || 0);
     megamiCouponActive = !!(data.megami_coupon_active);
     updateMegamiCouponUI();
-  } catch (e) {
-    console.warn("load points failed:", e);
-  }
+  } catch (e) { console.warn("load points failed:", e); }
 }
 
 function updateStampUI(points) {
   document.getElementById("stamp-current").textContent = points;
   const dots = document.querySelectorAll(".stamp-dot");
-  dots.forEach((dot, i) => {
-    dot.classList.toggle("filled", i < points);
-  });
+  dots.forEach((dot, i) => { dot.classList.toggle("filled", i < points); });
   document.getElementById("redeem-btn").style.display = (points >= 20 && !megamiCouponActive) ? "block" : "none";
 }
 
 function updateMegamiCouponUI() {
-  const area = document.getElementById("megami-coupon-area");
-  area.style.display = megamiCouponActive ? "block" : "none";
+  document.getElementById("megami-coupon-area").style.display = megamiCouponActive ? "block" : "none";
 }
 
 document.getElementById("redeem-btn").addEventListener("click", async () => {
@@ -382,9 +397,7 @@ document.getElementById("redeem-btn").addEventListener("click", async () => {
     } else {
       alert("交換できませんでした: " + (data.error || ""));
     }
-  } catch (e) {
-    alert("通信エラーが発生しました");
-  }
+  } catch (e) { alert("通信エラーが発生しました"); }
 });
 
 document.getElementById("megami-use-btn").addEventListener("click", async () => {
@@ -401,9 +414,7 @@ document.getElementById("megami-use-btn").addEventListener("click", async () => 
       updateMegamiCouponUI();
       alert("✅ 使用済みにしました！ありがとうございます！");
     }
-  } catch (e) {
-    alert("通信エラーが発生しました");
-  }
+  } catch (e) { alert("通信エラーが発生しました"); }
 });
 
 // ===== カレンダー =====
@@ -497,7 +508,6 @@ function getShortName(name) {
 function renderCalendar() {
   const title = document.getElementById("calendarTitle");
   const grid = document.getElementById("calendarGrid");
-
   title.textContent = `${currentYear}年${currentMonth}月`;
 
   const firstDay = new Date(currentYear, currentMonth - 1, 1);
@@ -707,9 +717,7 @@ document.getElementById("welcome-confirm-btn").addEventListener("click", async (
     } else {
       alert("エラー: " + (data.error || "不明なエラー"));
     }
-  } catch (e) {
-    alert("通信エラーが発生しました");
-  }
+  } catch (e) { alert("通信エラーが発生しました"); }
 });
 
 // ===== 誕生日クーポン =====
@@ -767,12 +775,10 @@ document.getElementById("birthday-confirm-btn").addEventListener("click", async 
     } else {
       alert("エラー: " + (data.error || "不明なエラー"));
     }
-  } catch (e) {
-    alert("通信エラーが発生しました");
-  }
+  } catch (e) { alert("通信エラーが発生しました"); }
 });
 
-// ===== FiNANCiEクーポン =====
+// ===== FiNANCiEクーポン（コード引換）★変更 =====
 document.getElementById("coupon-code-btn").addEventListener("click", async () => {
   const code = document.getElementById("coupon-code-input").value.trim();
   const resultEl = document.getElementById("coupon-code-result");
@@ -790,8 +796,9 @@ document.getElementById("coupon-code-btn").addEventListener("click", async () =>
     const data = await res.json();
     if (data.ok) {
       resultEl.className = "result-text success";
-      resultEl.textContent = `🎉 ${data.prize} をゲット！店頭で見せてね！`;
+      resultEl.textContent = `🎉 「${data.name || data.prize}」を取得しました！`;
       document.getElementById("coupon-code-input").value = "";
+      loadMyCoupons();
     } else {
       resultEl.className = "result-text error";
       const msgs = { "invalid code": "無効なコードです", "already used": "このコードは使用済みです" };
@@ -802,6 +809,62 @@ document.getElementById("coupon-code-btn").addEventListener("click", async () =>
     resultEl.textContent = "❌ 通信エラー";
   }
 });
+
+// ===== ★新規: 保有クーポン =====
+async function loadMyCoupons() {
+  const area = document.getElementById("my-coupons-area");
+  const list = document.getElementById("my-coupons-list");
+  if (!area || !list) return;
+  try {
+    const res = await fetch(`${API_BASE}/my-coupons?device_id=${encodeURIComponent(DEVICE_ID)}`);
+    const data = await res.json();
+    if (!data.coupons || data.coupons.length === 0) {
+      area.style.display = "none";
+      return;
+    }
+    area.style.display = "block";
+    list.innerHTML = data.coupons.map(c => {
+      const isUsed = !!c.used;
+      return `
+        <div class="my-coupon-card ${isUsed ? "used" : ""}">
+          ${c.image ? `<img src="${escapeHtml(c.image)}" class="my-coupon-img" onerror="this.style.display='none'">` : ""}
+          <div class="my-coupon-info">
+            <div class="my-coupon-name">${escapeHtml(c.name)}</div>
+            <div class="my-coupon-prize">${escapeHtml(c.prize)}</div>
+            <div class="my-coupon-status">
+              ${isUsed
+                ? `✅ 使用済み（${formatDate(c.used_at)}）`
+                : `取得: ${formatDate(c.acquired_at)}`
+              }
+            </div>
+          </div>
+          ${!isUsed ? `<button class="btn btn-danger btn-sm" onclick="useMyCoupon('${escapeHtml(c.code)}')">使用済みにする</button>` : ""}
+        </div>
+      `;
+    }).join("");
+  } catch (e) {
+    console.warn("loadMyCoupons failed:", e);
+    if (area) area.style.display = "none";
+  }
+}
+
+async function useMyCoupon(code) {
+  if (!confirm("⚠️ このクーポンを使用済みにしますか？\n店主の目の前で押してください。")) return;
+  try {
+    const res = await fetch(`${API_BASE}/use-coupon`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ device_id: DEVICE_ID, code })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      alert("✅ 使用済みにしました！");
+      loadMyCoupons();
+    } else {
+      alert("❌ " + (data.error || "エラーが発生しました"));
+    }
+  } catch (e) { alert("❌ 通信エラー"); }
+}
 
 // ===== QRスキャン =====
 let html5QrCode = null;
@@ -877,8 +940,7 @@ async function processCheckin(qrText) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         device_id: DEVICE_ID,
-        latitude,
-        longitude,
+        latitude, longitude,
         spot_lat: todaySpot.lat,
         spot_lng: todaySpot.lng,
         spot_name: todaySpot.name
@@ -1086,185 +1148,121 @@ document.getElementById("cache-clear-btn").addEventListener("click", async () =>
       await Promise.all(regs.map(r => r.unregister()));
     }
     resultEl.className = "result-text success";
-    resultEl.textContent = "✅ キャッシュをクリアしました。ページを再読み込みします…";
-    setTimeout(() => location.reload(), 1500);
+    resultEl.textContent = "✅ キャッシュをクリアしました";
   } catch (e) {
     resultEl.className = "result-text error";
     resultEl.textContent = "❌ クリアに失敗しました";
   }
 });
 
-// ===== 通知設定（場所チェックボックス排他制御） =====
-function syncPlaceUI() {
-  const all = document.getElementById("place_all");
-  const off = document.getElementById("place_off");
-  if (!all || !off) return;
-
-  const isAll = all.checked;
-  const isOff = off.checked;
-
-  if (isOff) {
-    all.checked = false;
-    all.disabled = true;
-    document.querySelectorAll("#placeList .settings-option").forEach(opt => {
-      opt.classList.add("disabled");
-    });
-    document.querySelectorAll(".placeChk").forEach(chk => {
-      chk.disabled = true;
-      chk.checked = false;
-    });
-    return;
-  }
-
-  all.disabled = false;
-
-  document.querySelectorAll("#placeList .settings-option").forEach(opt => {
-    opt.classList.toggle("disabled", isAll);
-  });
-  document.querySelectorAll(".placeChk").forEach(chk => {
-    chk.disabled = isAll;
-    if (isAll) chk.checked = false;
-  });
-}
-
-document.getElementById("place_all").addEventListener("change", () => {
-  if (document.getElementById("place_all").checked) {
-    document.getElementById("place_off").checked = false;
-  }
-  syncPlaceUI();
-});
-
-document.getElementById("place_off").addEventListener("change", () => {
-  if (document.getElementById("place_off").checked) {
-    document.getElementById("place_all").checked = false;
-  }
-  syncPlaceUI();
-});
-
-document.querySelectorAll(".placeChk").forEach(chk => {
-  chk.addEventListener("change", () => {
-    if (chk.checked) {
-      document.getElementById("place_all").checked = false;
-      document.getElementById("place_off").checked = false;
-    }
-    syncPlaceUI();
-  });
-});
-
-document.getElementById("pushBtn").addEventListener("click", () => {
-  doPushRegister().catch(err => {
-    const el = document.getElementById("pushStatus");
-    el.className = "result-text error";
-    el.textContent = "❌ " + (err?.message || String(err));
-  });
-});
-
+// ===== Web Push 登録（ブラウザ用） =====
 async function doPushRegister() {
-  const statusEl = document.getElementById("pushStatus");
+  var statusEl = document.getElementById("pushStatus");
   statusEl.className = "result-text loading";
   statusEl.textContent = "⏳ 登録中…";
 
-  if (!("Notification" in window)) {
-    statusEl.className = "result-text error";
-    statusEl.textContent = "❌ このブラウザは通知に未対応";
-    return;
-  }
+  try {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      statusEl.className = "result-text error";
+      statusEl.textContent = "❌ このブラウザはプッシュ通知に対応していません";
+      return;
+    }
 
-  const reg = await registerSW();
-  if (!reg) {
-    statusEl.className = "result-text error";
-    statusEl.textContent = "❌ SW登録に失敗";
-    return;
-  }
+    var reg = await navigator.serviceWorker.ready;
+    var vapidKey = await getVapidPublicKey();
+    if (!vapidKey) {
+      statusEl.className = "result-text error";
+      statusEl.textContent = "❌ VAPID キーの取得に失敗しました";
+      return;
+    }
 
-  if (!reg.pushManager) {
-    statusEl.className = "result-text error";
-    statusEl.textContent = "❌ Push未対応（iPhoneはホーム画面に追加してSafariで開く）";
-    return;
-  }
-
-  const perm = await Notification.requestPermission();
-  if (perm !== "granted") {
-    statusEl.className = "result-text error";
-    statusEl.textContent = "❌ 通知が許可されていません";
-    return;
-  }
-
-  const publicKey = await getVapidPublicKey();
-  let sub = await reg.pushManager.getSubscription();
-  if (!sub) {
-    sub = await reg.pushManager.subscribe({
+    var sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: b64ToUint8Array(publicKey)
+      applicationServerKey: b64ToUint8Array(vapidKey)
     });
-  }
 
-  const hour = document.querySelector('input[name="notifyHour"]:checked')?.value || "21";
-  const isOff = document.getElementById("place_off").checked;
-  const allPlaces = document.getElementById("place_all").checked;
-  var places;
-  if (isOff) {
-    places = ["off"];
-  } else if (allPlaces) {
-    places = [];
-  } else {
-    places = [...document.querySelectorAll(".placeChk:checked")].map(x => x.value);
-  }
+    var hour = document.querySelector('input[name="notifyHour"]:checked');
+    var hourVal = hour ? parseInt(hour.value) : 21;
 
-  await upsertSubscription(sub, parseInt(hour), places);
-  statusEl.className = "result-text success";
-  if (isOff) {
-    statusEl.textContent = "✅ 通知をOFFにしました";
-  } else {
-    statusEl.textContent = "✅ 登録完了！通知が届くようになりました";
+    var isOff = document.getElementById("place_off").checked;
+    var allPlaces = document.getElementById("place_all").checked;
+    var places;
+    if (isOff) {
+      places = ["off"];
+    } else if (allPlaces) {
+      places = [];
+    } else {
+      places = [...document.querySelectorAll(".placeChk:checked")].map(x => x.value);
+    }
+
+    await upsertSubscription(sub, hourVal, places);
+
+    statusEl.className = "result-text success";
+    if (isOff) {
+      statusEl.textContent = "✅ 通知をOFFにしました";
+    } else {
+      statusEl.textContent = "✅ 通知設定を保存しました！";
+    }
+  } catch (e) {
+    console.warn("push register error:", e);
+    statusEl.className = "result-text error";
+    statusEl.textContent = "❌ 通知の登録に失敗しました";
   }
 }
 
-// ===== Push ヘルパー =====
+// ===== Push ユーティリティ =====
 function b64ToUint8Array(base64String) {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const padding = "=".repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
   const rawData = atob(base64);
-  const arr = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) arr[i] = rawData.charCodeAt(i);
-  return arr;
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
 }
 
 async function getVapidPublicKey() {
-  const res = await fetch(`${PUSH_API_BASE}/vapid`);
-  const data = await res.json();
-  if (!res.ok || !data.publicKey) throw new Error(data.error || "vapid fetch failed");
-  return data.publicKey;
+  try {
+    const res = await fetch(`${PUSH_API_BASE}/vapid`);
+    const data = await res.json();
+    return data.publicKey || null;
+  } catch (e) { return null; }
 }
 
-async function upsertSubscription(subscription, hour, places) {
-  const res = await fetch(`${PUSH_API_BASE}/subs/upsert`, {
+async function upsertSubscription(sub, hour, places) {
+  await fetch(`${PUSH_API_BASE}/subs/upsert`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ subscription, places, hour })
+    body: JSON.stringify({
+      device_id: DEVICE_ID,
+      subscription: sub.toJSON(),
+      hour: hour,
+      places: places
+    })
   });
-  const data = await res.json();
-  if (!res.ok || !data.ok) throw new Error(data.error || "upsert failed");
 }
 
-// ===== Service Worker =====
 async function registerSW() {
-  if (!("serviceWorker" in navigator)) return null;
-  try {
-    return await navigator.serviceWorker.register("sw.js");
-  } catch (e) { return null; }
+  if ("serviceWorker" in navigator) {
+    await navigator.serviceWorker.register("sw.js");
+  }
+
+  var pushBtn = document.getElementById("pushBtn");
+  if (pushBtn && !isNativeApp()) {
+    pushBtn.addEventListener("click", doPushRegister);
+  }
 }
 
 // ===== ユーティリティ =====
 function escapeHtml(str) {
-  const div = document.createElement("div");
-  div.textContent = str || "";
-  return div.innerHTML;
+  const d = document.createElement("div");
+  d.textContent = str || "";
+  return d.innerHTML;
 }
 
-function formatDate(isoStr) {
-  if (!isoStr) return "";
-  const d = new Date(isoStr);
-  if (isNaN(d)) return isoStr;
-  return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}`;
+function formatDate(str) {
+  if (!str) return "";
+  try {
+    const d = new Date(str);
+    return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+  } catch (e) { return str; }
 }
