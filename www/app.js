@@ -65,15 +65,24 @@ function isNativeApp() {
   return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 }
 
-// ===== 端末ID（Preferences + localStorage 二重保存） =====
+// ===== 端末ID（Preferences + localStorage 二重保存・競合防止ロック付き） =====
 const DEVICE_ID_KEY = "kanatake_device_id";
+let _deviceIdPromise = null;
 
 async function getDeviceIdAsync() {
+  if (_deviceIdPromise) return _deviceIdPromise;
+  _deviceIdPromise = _getDeviceIdCore();
+  return _deviceIdPromise;
+}
+
+async function _getDeviceIdCore() {
+  // 1. Preferences（ネイティブストレージ）を最優先で読む
   if (isNativeApp() && window.Capacitor.Plugins.Preferences) {
     try {
       var result = await window.Capacitor.Plugins.Preferences.get({ key: DEVICE_ID_KEY });
       if (result.value) {
         localStorage.setItem(DEVICE_ID_KEY, result.value);
+        sessionStorage.setItem(DEVICE_ID_KEY, result.value);
         return result.value;
       }
     } catch (e) {
@@ -81,14 +90,18 @@ async function getDeviceIdAsync() {
     }
   }
 
+  // 2. localStorage
   var id = localStorage.getItem(DEVICE_ID_KEY);
+  // 3. sessionStorage
   if (!id) {
     id = sessionStorage.getItem(DEVICE_ID_KEY);
   }
+  // 4. 新規生成
   if (!id) {
     id = "dev_" + crypto.randomUUID();
   }
 
+  // すべてに保存
   localStorage.setItem(DEVICE_ID_KEY, id);
   sessionStorage.setItem(DEVICE_ID_KEY, id);
 
@@ -1090,7 +1103,6 @@ function syncPlaceUI() {
   const isAll = all.checked;
   const isOff = off.checked;
 
-  // OFF が選ばれているとき → すべて・個別を無効化
   if (isOff) {
     all.checked = false;
     all.disabled = true;
@@ -1104,10 +1116,8 @@ function syncPlaceUI() {
     return;
   }
 
-  // OFF でないとき → すべてを有効に戻す
   all.disabled = false;
 
-  // すべてが選ばれているとき → 個別を無効化
   document.querySelectorAll("#placeList .settings-option").forEach(opt => {
     opt.classList.toggle("disabled", isAll);
   });
