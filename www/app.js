@@ -171,17 +171,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 // ===== ネイティブアプリ用: Web Push ボタンだけ変更、時間・場所UIは残す =====
 function setupNativePushUI() {
-  // 「通知を受け取る」ボタンのテキストを「通知設定を保存」に変える
   var pushBtn = document.getElementById("pushBtn");
   if (pushBtn) {
     pushBtn.textContent = "🔔 通知設定を保存";
-    // 元のイベントリスナーを上書き
     pushBtn.replaceWith(pushBtn.cloneNode(true));
     var newBtn = document.getElementById("pushBtn");
     newBtn.addEventListener("click", saveApnsSettings);
   }
 
-  // ステータス表示
   var pushStatus = document.getElementById("pushStatus");
   if (pushStatus) {
     pushStatus.className = "result-text success";
@@ -198,8 +195,17 @@ async function saveApnsSettings() {
     var hour = document.querySelector('input[name="notifyHour"]:checked');
     var hourVal = hour ? parseInt(hour.value) : 21;
 
+    // OFF が選ばれている場合
+    var isOff = document.getElementById("place_off").checked;
     var allPlaces = document.getElementById("place_all").checked;
-    var places = allPlaces ? [] : [...document.querySelectorAll(".placeChk:checked")].map(x => x.value);
+    var places;
+    if (isOff) {
+      places = ["off"];
+    } else if (allPlaces) {
+      places = [];
+    } else {
+      places = [...document.querySelectorAll(".placeChk:checked")].map(x => x.value);
+    }
 
     var res = await fetch(PUSH_API_BASE + "/apns-settings", {
       method: "POST",
@@ -213,7 +219,11 @@ async function saveApnsSettings() {
     var data = await res.json();
     if (data.ok) {
       statusEl.className = "result-text success";
-      statusEl.textContent = "✅ 通知設定を保存しました！";
+      if (isOff) {
+        statusEl.textContent = "✅ 通知をOFFにしました";
+      } else {
+        statusEl.textContent = "✅ 通知設定を保存しました！";
+      }
     } else {
       statusEl.className = "result-text error";
       statusEl.textContent = "❌ " + (data.error || "保存に失敗しました");
@@ -1071,11 +1081,33 @@ document.getElementById("cache-clear-btn").addEventListener("click", async () =>
   }
 });
 
-// ===== 通知設定 =====
+// ===== 通知設定（場所チェックボックス排他制御） =====
 function syncPlaceUI() {
   const all = document.getElementById("place_all");
-  if (!all) return;
+  const off = document.getElementById("place_off");
+  if (!all || !off) return;
+
   const isAll = all.checked;
+  const isOff = off.checked;
+
+  // OFF が選ばれているとき → すべて・個別を無効化
+  if (isOff) {
+    all.checked = false;
+    all.disabled = true;
+    document.querySelectorAll("#placeList .settings-option").forEach(opt => {
+      opt.classList.add("disabled");
+    });
+    document.querySelectorAll(".placeChk").forEach(chk => {
+      chk.disabled = true;
+      chk.checked = false;
+    });
+    return;
+  }
+
+  // OFF でないとき → すべてを有効に戻す
+  all.disabled = false;
+
+  // すべてが選ばれているとき → 個別を無効化
   document.querySelectorAll("#placeList .settings-option").forEach(opt => {
     opt.classList.toggle("disabled", isAll);
   });
@@ -1085,10 +1117,26 @@ function syncPlaceUI() {
   });
 }
 
-document.getElementById("place_all").addEventListener("change", syncPlaceUI);
+document.getElementById("place_all").addEventListener("change", () => {
+  if (document.getElementById("place_all").checked) {
+    document.getElementById("place_off").checked = false;
+  }
+  syncPlaceUI();
+});
+
+document.getElementById("place_off").addEventListener("change", () => {
+  if (document.getElementById("place_off").checked) {
+    document.getElementById("place_all").checked = false;
+  }
+  syncPlaceUI();
+});
+
 document.querySelectorAll(".placeChk").forEach(chk => {
   chk.addEventListener("change", () => {
-    if (chk.checked) document.getElementById("place_all").checked = false;
+    if (chk.checked) {
+      document.getElementById("place_all").checked = false;
+      document.getElementById("place_off").checked = false;
+    }
     syncPlaceUI();
   });
 });
@@ -1142,12 +1190,24 @@ async function doPushRegister() {
   }
 
   const hour = document.querySelector('input[name="notifyHour"]:checked')?.value || "21";
+  const isOff = document.getElementById("place_off").checked;
   const allPlaces = document.getElementById("place_all").checked;
-  const places = allPlaces ? [] : [...document.querySelectorAll(".placeChk:checked")].map(x => x.value);
+  var places;
+  if (isOff) {
+    places = ["off"];
+  } else if (allPlaces) {
+    places = [];
+  } else {
+    places = [...document.querySelectorAll(".placeChk:checked")].map(x => x.value);
+  }
 
   await upsertSubscription(sub, parseInt(hour), places);
   statusEl.className = "result-text success";
-  statusEl.textContent = "✅ 登録完了！通知が届くようになりました";
+  if (isOff) {
+    statusEl.textContent = "✅ 通知をOFFにしました";
+  } else {
+    statusEl.textContent = "✅ 登録完了！通知が届くようになりました";
+  }
 }
 
 // ===== Push ヘルパー =====
