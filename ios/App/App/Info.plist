@@ -31,7 +31,7 @@
 
 	<!-- カメラ -->
 	<key>NSCameraUsageDescription</key>
-	<string>写真を撮影するためにカメラを使用します</string>
+	<string>来店チェックイン用のQRコードを読み取るためにカメラを使用します。撮影した画像は保存・送信されません。</string>
 
 	<!-- 位置情報（使用中のみ） -->
 	<key>NSLocationWhenInUseUsageDescription</key>
