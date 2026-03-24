@@ -40,6 +40,7 @@ const API_BASE = "https://kanatake-api.la-kofu.workers.dev";
 const PUSH_API_BASE = "https://kanatae-push.la-kofu.workers.dev";
 const ASSETS_BASE = "https://kimura-jane.github.io/kanatae-app";
 const APP_URL = "https://kanatake-v2.pages.dev";
+const SHARE_URL = "https://apps.apple.com/app/id6760612778";
 
 const CHOICE_IMAGES = {
   "お茶": "IMG_5006.jpeg",
@@ -287,35 +288,70 @@ async function registerDevice() {
 // ===== お知らせ =====
 let noticesShowAll = false;
 
-async function loadNotices(all) {
+async function loadNotices() {
   const el = document.getElementById("notices-list");
   const moreBtn = document.getElementById("notices-more-btn");
   try {
-    const url = all ? `${API_BASE}/notices?all=1` : `${API_BASE}/notices`;
-    const res = await fetch(url);
+    const res = await fetch(`${API_BASE}/notices?all=1`);
     const data = await res.json();
     if (!data.notices || data.notices.length === 0) {
       el.innerHTML = '<p class="loading-text">お知らせはありません</p>';
       moreBtn.style.display = "none";
       return;
     }
-    el.innerHTML = data.notices.map(n => {
-      const bodyHtml = renderNoticeBody(n.body);
-      return `
-        <div class="notice-item">
-          <span class="notice-date">${formatDate(n.created_at)}</span>
-          <div class="notice-body">${bodyHtml}</div>
-        </div>
+
+    const notices = data.notices;
+    const latest = notices[0];
+    const older = notices.slice(1);
+
+    let html = "";
+
+    // 最新1件は常に表示
+    const latestBodyHtml = renderNoticeBody(latest.body);
+    html += `
+      <div class="notice-item">
+        <span class="notice-date">${formatDate(latest.created_at)}</span>
+        <div class="notice-body">${latestBodyHtml}</div>
+      </div>
+    `;
+
+    // 過去のお知らせがある場合
+    if (older.length > 0) {
+      html += `
+        <div id="notices-older-toggle" class="notices-older-toggle">▼ 過去のお知らせ（${older.length}件）</div>
+        <div id="notices-older-list" class="notices-older-list" style="display:none;">
       `;
-    }).join("");
+      older.forEach(n => {
+        const bodyHtml = renderNoticeBody(n.body);
+        html += `
+          <div class="notice-item">
+            <span class="notice-date">${formatDate(n.created_at)}</span>
+            <div class="notice-body">${bodyHtml}</div>
+          </div>
+        `;
+      });
+      html += `</div>`;
+    }
+
+    el.innerHTML = html;
+    moreBtn.style.display = "none";
+
+    // 過去のお知らせトグル
+    const toggle = document.getElementById("notices-older-toggle");
+    if (toggle) {
+      toggle.addEventListener("click", function() {
+        const list = document.getElementById("notices-older-list");
+        if (list.style.display === "none") {
+          list.style.display = "block";
+          toggle.textContent = "▲ 過去のお知らせを閉じる";
+        } else {
+          list.style.display = "none";
+          toggle.textContent = "▼ 過去のお知らせ（" + older.length + "件）";
+        }
+      });
+    }
 
     if (el.querySelector(".twitter-tweet")) loadTwitterWidget();
-
-    if (!all && data.notices.length >= 3) {
-      moreBtn.style.display = "block";
-    } else {
-      moreBtn.style.display = "none";
-    }
   } catch (e) {
     el.innerHTML = '<p class="loading-text">読み込みに失敗しました</p>';
   }
@@ -340,7 +376,7 @@ function loadTwitterWidget() {
 
 document.getElementById("notices-more-btn").addEventListener("click", () => {
   noticesShowAll = true;
-  loadNotices(true);
+  loadNotices();
 });
 
 // ===== スタンプ / ポイント =====
@@ -1127,11 +1163,11 @@ async function loadCheckinHistory() {
 // ===== シェア =====
 document.getElementById("share-x-btn").addEventListener("click", () => {
   const text = "おにぎり屋かなたけのアプリ🍙\n出店スケジュールやクーポンがチェックできるよ！";
-  window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(APP_URL)}`, "_blank");
+  window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(SHARE_URL)}`, "_blank");
 });
 
 document.getElementById("share-line-btn").addEventListener("click", () => {
-  const text = "おにぎり屋かなたけのアプリ🍙 " + APP_URL;
+  const text = "おにぎり屋かなたけのアプリ🍙 " + SHARE_URL;
   window.open(`https://line.me/R/share?text=${encodeURIComponent(text)}`, "_blank");
 });
 
