@@ -50,7 +50,7 @@ workflows:
       - name: Increment build number
         script: |
           cd $CM_BUILD_DIR/ios/App
-          agvtool new-version -all 22
+          agvtool new-version -all 23
       - name: Build ipa for distribution
         script: |
           cd $CM_BUILD_DIR/ios/App
