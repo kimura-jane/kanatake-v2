@@ -80,7 +80,7 @@
       </div>
     </div>
 
-    <!-- クーポン管理 ★変更 -->
+    <!-- クーポン管理 -->
     <div class="tab-content" id="tab-coupons">
       <div class="card">
         <h2>クーポン発行</h2>
@@ -241,7 +241,7 @@ async function deleteReview(id) {
   loadAdminReviews();
 }
 
-// ===== クーポン管理 ★変更 =====
+// ===== クーポン管理 =====
 
 // 画像URLプレビュー
 document.getElementById("coupon-image").addEventListener("input", (e) => {
@@ -262,11 +262,20 @@ document.getElementById("coupon-create-btn").addEventListener("click", async () 
 
   if (!prize) { msgEl.innerHTML = '<span class="msg msg-error">特典名を入力</span>'; return; }
 
+  msgEl.innerHTML = '<span class="msg msg-info">発行中…</span>';
+
   try {
     const res = await fetch(`${API_BASE}/admin/coupons`, {
       method: "POST", headers: authHeaders(),
       body: JSON.stringify({ prize, name: name || prize, image })
     });
+
+    if (!res.ok) {
+      const text = await res.text();
+      msgEl.innerHTML = `<span class="msg msg-error">APIエラー (${res.status}): ${esc(text.substring(0, 200))}</span>`;
+      return;
+    }
+
     const data = await res.json();
     if (data.ok) {
       msgEl.innerHTML = `<span class="msg msg-success">発行完了！ コード: <strong>${data.code}</strong></span>`;
@@ -275,8 +284,12 @@ document.getElementById("coupon-create-btn").addEventListener("click", async () 
       document.getElementById("coupon-image").value = "";
       document.getElementById("coupon-image-preview").innerHTML = "";
       loadAdminCoupons();
+    } else {
+      msgEl.innerHTML = `<span class="msg msg-error">${esc(data.error || "発行に失敗しました")}</span>`;
     }
-  } catch (e) { msgEl.innerHTML = '<span class="msg msg-error">通信エラー</span>'; }
+  } catch (e) {
+    msgEl.innerHTML = `<span class="msg msg-error">通信エラー: ${esc(e.message)}</span>`;
+  }
 });
 
 async function loadAdminCoupons() {
@@ -316,6 +329,8 @@ document.getElementById("notice-create-btn").addEventListener("click", async () 
       msgEl.innerHTML = '<span class="msg msg-success">投稿完了</span>';
       document.getElementById("notice-body").value = "";
       loadAdminNotices();
+    } else {
+      msgEl.innerHTML = `<span class="msg msg-error">${esc(data.error || "投稿に失敗しました")}</span>`;
     }
   } catch (e) { msgEl.innerHTML = '<span class="msg msg-error">通信エラー</span>'; }
 });
@@ -363,6 +378,8 @@ document.getElementById("loc-create-btn").addEventListener("click", async () => 
       document.getElementById("loc-lat").value = "";
       document.getElementById("loc-lng").value = "";
       loadAdminLocations();
+    } else {
+      msgEl.innerHTML = `<span class="msg msg-error">${esc(data.error || "追加に失敗しました")}</span>`;
     }
   } catch (e) { msgEl.innerHTML = '<span class="msg msg-error">通信エラー</span>'; }
 });
