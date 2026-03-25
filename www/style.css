@@ -182,9 +182,19 @@ html, body {
   word-break: break-word;
 }
 
-/* X埋め込み */
 .notice-embed {
   margin-top: 8px;
+}
+
+.notices-older-toggle {
+  text-align: center;
+  padding: 10px;
+  color: #f5a623;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  border-top: 1px solid #f0f0f0;
+  margin-top: 4px;
 }
 
 /* スタンプカード */
@@ -344,7 +354,168 @@ html, body {
   white-space: nowrap;
 }
 
-/* メニュー画像 */
+/* ===== メニュー（改善版） ===== */
+.menu-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  color: #666;
+  background: #fff9e6;
+  border: 1px solid #f5e6b8;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  line-height: 1.6;
+}
+
+.menu-notice-icon {
+  flex-shrink: 0;
+}
+
+.menu-notice a {
+  color: #f5a623;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.menu-notice a:hover {
+  text-decoration: underline;
+}
+
+.menu-hint {
+  font-size: 11px;
+  color: #999;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.menu-map-wrap {
+  position: relative;
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.menu-map-img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.menu-hotspot {
+  position: absolute;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.menu-hotspot:active {
+  background: rgba(245, 166, 35, 0.25);
+}
+
+/* のり弁セクション */
+.menu-noriben {
+  margin-top: 16px;
+}
+
+.menu-noriben-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f5a623;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid #fff3d0;
+}
+
+.menu-noriben-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.menu-noriben-item {
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.menu-noriben-item:active {
+  transform: scale(0.96);
+}
+
+.menu-noriben-item img {
+  width: 100%;
+  height: auto;
+  display: block;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+
+/* メニュー拡大モーダル */
+.menu-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.92);
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 20px;
+}
+
+.menu-modal-overlay.active {
+  display: flex;
+}
+
+.menu-modal-inner {
+  position: relative;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.menu-modal-name {
+  color: white;
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  text-align: center;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+.menu-modal-img {
+  max-width: 100%;
+  max-height: 65vh;
+  border-radius: 12px;
+  object-fit: contain;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+.menu-modal-close {
+  margin-top: 16px;
+  padding: 10px 28px;
+  background: rgba(255,255,255,0.15);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 50px;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.menu-modal-close:active {
+  background: rgba(255,255,255,0.3);
+}
+
+/* 旧メニュー画像（互換用・使わなくなったら削除可） */
 .menu-container { display: flex; justify-content: center; }
 
 .menu-image {
@@ -751,6 +922,12 @@ html, body {
   color: white;
 }
 
+.btn-sm {
+  padding: 8px 14px;
+  font-size: 12px;
+  border-radius: 8px;
+}
+
 .btn-large {
   padding: 16px 32px;
   font-size: 16px;
@@ -785,7 +962,7 @@ html, body {
   font-size: 13px;
 }
 
-/* モーダル */
+/* モーダル（カレンダー用） */
 .modal-overlay {
   display: none;
   position: fixed;
@@ -860,6 +1037,7 @@ html, body {
   background: #fff5f5;
   border-radius: 8px;
 }
+
 /* 保有クーポンカード */
 .my-coupon-card {
   display: flex;
@@ -870,10 +1048,12 @@ html, body {
   border-radius: 12px;
   margin-bottom: 10px;
 }
+
 .my-coupon-card.used {
   background: #f0f0f0;
   opacity: 0.6;
 }
+
 .my-coupon-img {
   width: 64px;
   height: 64px;
@@ -881,21 +1061,24 @@ html, body {
   border-radius: 8px;
   flex-shrink: 0;
 }
+
 .my-coupon-info {
   flex: 1;
 }
+
 .my-coupon-name {
   font-weight: 700;
   font-size: 14px;
   margin-bottom: 2px;
 }
+
 .my-coupon-prize {
   font-size: 12px;
   color: #666;
 }
+
 .my-coupon-status {
   font-size: 11px;
   color: #999;
   margin-top: 4px;
 }
-
