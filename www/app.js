@@ -41,6 +41,7 @@ const PUSH_API_BASE = "https://kanatae-push.la-kofu.workers.dev";
 const ASSETS_BASE = "https://kimura-jane.github.io/kanatae-app";
 const APP_URL = "https://kanatake-v2.pages.dev";
 const SHARE_URL = "https://apps.apple.com/app/id6760612778";
+const MENU_IMAGE_BASE = "https://raw.githubusercontent.com/kimura-jane/kanatake-v2/main/gazo/";
 
 const CHOICE_IMAGES = {
   "お茶": "IMG_5006.jpeg",
@@ -144,6 +145,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initStampGrid();
   await loadPoints();
   await loadNotices();
+  initMenuModal();
 
   initCalendarRangeAndStartMonth();
   renderCalendar();
@@ -162,6 +164,51 @@ document.addEventListener("DOMContentLoaded", async () => {
     registerSW().catch(() => {});
   }
 });
+
+// ===== メニュー拡大モーダル（新規追加） =====
+function initMenuModal() {
+  const modal = document.getElementById("menuModal");
+  const modalImg = document.getElementById("menuModalImg");
+  const modalName = document.getElementById("menuModalName");
+  const closeBtn = document.getElementById("menuModalClose");
+  if (!modal || !modalImg || !closeBtn) return;
+
+  // 全体写真のホットスポット
+  document.querySelectorAll(".menu-hotspot").forEach(el => {
+    el.addEventListener("click", () => {
+      const file = el.dataset.menu;
+      const name = el.dataset.name;
+      if (!file) return;
+      modalImg.src = MENU_IMAGE_BASE + file + ".jpeg";
+      modalImg.alt = name;
+      modalName.textContent = name;
+      modal.classList.add("active");
+    });
+  });
+
+  // のり弁の個別画像
+  document.querySelectorAll(".menu-noriben-item").forEach(el => {
+    el.addEventListener("click", () => {
+      const file = el.dataset.menu;
+      const name = el.dataset.name;
+      if (!file) return;
+      modalImg.src = MENU_IMAGE_BASE + file + ".jpeg";
+      modalImg.alt = name;
+      modalName.textContent = name;
+      modal.classList.add("active");
+    });
+  });
+
+  // 閉じる
+  closeBtn.addEventListener("click", () => {
+    modal.classList.remove("active");
+  });
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) {
+      modal.classList.remove("active");
+    }
+  });
+}
 
 // ===== ネイティブアプリ用: Push UI =====
 function setupNativePushUI() {
