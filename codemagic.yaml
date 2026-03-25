@@ -51,6 +51,10 @@ workflows:
         script: |
           cd $CM_BUILD_DIR/ios/App
           agvtool new-version -all 24
+      - name: Set marketing version to 1.1
+        script: |
+          cd $CM_BUILD_DIR/ios/App
+          agvtool new-marketing-version 1.1
       - name: Build ipa for distribution
         script: |
           cd $CM_BUILD_DIR/ios/App
