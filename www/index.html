@@ -82,10 +82,51 @@
 
     <!-- ===== クーポン ===== -->
     <section class="page" id="page-coupon">
+
+      <!-- メニュー（改善版） -->
       <div class="section-card">
         <h2 class="section-title">🍙 メニュー</h2>
-        <div class="menu-container">
-          <img src="https://kimura-jane.github.io/kanatae-app/IMG_7605.jpeg" alt="おにぎり屋かなたけ メニュー" class="menu-image">
+        <div class="menu-notice">
+          <span class="menu-notice-icon">📢</span>
+          <span>販売状況は日によって異なる場合があります。最新情報は
+            <a href="https://x.com/kanatake33" target="_blank" rel="noopener">𝕏</a>や
+            <a href="https://www.instagram.com/kanatake33/" target="_blank" rel="noopener">Instagram</a>
+          をご確認ください。</span>
+        </div>
+        <p class="menu-hint">商品をタップすると拡大写真が見られます</p>
+        <div class="menu-map-wrap" id="menuMapWrap">
+          <img src="https://raw.githubusercontent.com/kimura-jane/kanatake-v2/main/gazo/IMG_5227.jpeg"
+               alt="おにぎり屋かなたけ メニュー" class="menu-map-img" id="menuMapImg">
+          <!-- 1段目: おにぎり3つ -->
+          <div class="menu-hotspot" style="left:1%;top:7%;width:32%;height:22%;" data-menu="IMG_5220" data-name="小松菜と炙り鮭チーズ"></div>
+          <div class="menu-hotspot" style="left:34%;top:7%;width:32%;height:22%;" data-menu="IMG_5221" data-name="山わさびとクリームチーズ"></div>
+          <div class="menu-hotspot" style="left:67%;top:7%;width:32%;height:22%;" data-menu="IMG_5222" data-name="ダブル昆布"></div>
+          <!-- 2段目: おにぎり3つ -->
+          <div class="menu-hotspot" style="left:1%;top:30%;width:32%;height:22%;" data-menu="IMG_5223" data-name="梅きんぴらごぼう"></div>
+          <div class="menu-hotspot" style="left:34%;top:30%;width:32%;height:22%;" data-menu="IMG_5224" data-name="大葉みそ"></div>
+          <div class="menu-hotspot" style="left:67%;top:30%;width:32%;height:22%;" data-menu="IMG_5226" data-name="じゃがいもとカレーそぼろ"></div>
+          <!-- 3段目: みそ汁・ポリ茶瓶 -->
+          <div class="menu-hotspot" style="left:1%;top:53%;width:49%;height:13%;" data-menu="IMG_5231" data-name="本日の限定みそ汁"></div>
+          <div class="menu-hotspot" style="left:51%;top:53%;width:48%;height:13%;" data-menu="IMG_5230" data-name="ポリ茶瓶（お茶）"></div>
+          <!-- 4段目左: 玄米だんご -->
+          <div class="menu-hotspot" style="left:1%;top:67%;width:49%;height:13%;" data-menu="IMG_5228" data-name="女神の玄米だんご"></div>
+          <!-- 4段目右: 女神のほほえみ（個別写真なし） -->
+        </div>
+
+        <!-- のり弁セクション -->
+        <div class="menu-noriben">
+          <h3 class="menu-noriben-title">🍱 のり弁</h3>
+          <div class="menu-noriben-grid">
+            <div class="menu-noriben-item" data-menu="IMG_5232" data-name="のり弁①">
+              <img src="https://raw.githubusercontent.com/kimura-jane/kanatake-v2/main/gazo/IMG_5232.jpeg" alt="のり弁①" loading="lazy">
+            </div>
+            <div class="menu-noriben-item" data-menu="IMG_5233" data-name="のり弁②">
+              <img src="https://raw.githubusercontent.com/kimura-jane/kanatake-v2/main/gazo/IMG_5233.jpeg" alt="のり弁②" loading="lazy">
+            </div>
+            <div class="menu-noriben-item" data-menu="IMG_5234" data-name="のり弁③">
+              <img src="https://raw.githubusercontent.com/kimura-jane/kanatake-v2/main/gazo/IMG_5234.jpeg" alt="のり弁③" loading="lazy">
+            </div>
+          </div>
         </div>
       </div>
 
@@ -313,7 +354,7 @@
         </div>
       </div>
 
-      <!-- シェア（App Store公開後に style="display:none;" を外す） -->
+      <!-- シェア -->
       <div class="section-card">
         <h2 class="section-title">📤 シェア</h2>
         <p class="settings-desc">おにぎり屋かなたけをシェアしよう！</p>
@@ -323,7 +364,7 @@
         </div>
       </div>
 
-      <!-- お問い合わせ ★変更 -->
+      <!-- お問い合わせ -->
       <div class="section-card">
         <h2 class="section-title">📩 お問い合わせ</h2>
         <p class="settings-desc">営業に関するお問い合わせ</p>
@@ -375,6 +416,7 @@
 
 </div>
 
+<!-- 既存モーダル（カレンダー用） -->
 <div class="modal-overlay" id="modal">
   <div class="modal">
     <p class="modal-date" id="modalDate"></p>
@@ -382,6 +424,15 @@
     <p class="modal-time" id="modalTime"></p>
     <a class="modal-btn" id="modalMap" href="#" target="_blank" rel="noopener">Googleマップで開く</a>
     <button class="modal-btn modal-close" id="modalClose">閉じる</button>
+  </div>
+</div>
+
+<!-- メニュー拡大モーダル（新規追加） -->
+<div class="menu-modal-overlay" id="menuModal">
+  <div class="menu-modal-inner">
+    <p class="menu-modal-name" id="menuModalName"></p>
+    <img src="" alt="" id="menuModalImg" class="menu-modal-img">
+    <button class="menu-modal-close" id="menuModalClose">✕ 閉じる</button>
   </div>
 </div>
 
