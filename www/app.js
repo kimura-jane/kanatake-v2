@@ -165,7 +165,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 });
 
-// ===== メニュー拡大モーダル（新規追加） =====
+// ===== メニュー拡大モーダル =====
 function initMenuModal() {
   const modal = document.getElementById("menuModal");
   const modalImg = document.getElementById("menuModalImg");
@@ -207,7 +207,7 @@ function initMenuModal() {
   });
 }
 
-// ===== ネイティブアプリ用: Push UI ★変更 =====
+// ===== ネイティブアプリ用: Push UI =====
 function setupNativePushUI() {
   var pushBtn = document.getElementById("pushBtn");
   if (pushBtn) {
@@ -224,7 +224,7 @@ function setupNativePushUI() {
   }
 }
 
-// ===== APNs 設定保存 ★変更: ON/OFF + placeMode方式 =====
+// ===== APNs 設定保存（ON/OFF + placeMode方式） =====
 async function saveApnsSettings() {
   var statusEl = document.getElementById("pushStatus");
   statusEl.className = "result-text loading";
@@ -280,7 +280,7 @@ async function saveApnsSettings() {
   }
 }
 
-// ===== 通知 UI 制御 ★変更: ON/OFF → 詳細表示、placeMode ラジオで場所切替 =====
+// ===== 通知 UI 制御（ON/OFF → 詳細表示、placeMode ラジオで場所切替） =====
 function syncPlaceUI() {
   var pushOnOffRadios = document.querySelectorAll('input[name="pushOnOff"]');
   var detailArea = document.getElementById("pushSettingsDetail");
@@ -1232,7 +1232,7 @@ document.getElementById("cache-clear-btn").addEventListener("click", async () =>
   }
 });
 
-// ===== Web Push 登録（ブラウザ用）★変更: ON/OFF + placeMode方式 =====
+// ===== Web Push 登録（ブラウザ用・ON/OFF + placeMode方式） =====
 async function doPushRegister() {
   var statusEl = document.getElementById("pushStatus");
   statusEl.className = "result-text loading";
