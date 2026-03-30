@@ -271,7 +271,7 @@ async function saveApnsSettings() {
   }
 }
 
-// ===== 場所 UI 排他制御 =====
+// ===== 場所 UI 排他制御（★修正済み） =====
 function syncPlaceUI() {
   var offChk = document.getElementById("place_off");
   var allChk = document.getElementById("place_all");
@@ -280,51 +280,59 @@ function syncPlaceUI() {
 
   if (!offChk || !allChk) return;
 
+  // UI の見た目と disabled を一括で同期する関数
+  function applyPlaceState() {
+    if (offChk.checked) {
+      // OFF状態: すべて無効化
+      allChk.checked = false;
+      allChk.disabled = true;
+      placeChks.forEach(function(c) { c.checked = false; c.disabled = true; });
+      if (placeList) placeList.style.opacity = "0.4";
+    } else if (allChk.checked) {
+      // すべて通知状態: 個別場所は無効化
+      offChk.checked = false;
+      allChk.disabled = false;
+      placeChks.forEach(function(c) { c.checked = false; c.disabled = true; });
+      if (placeList) placeList.style.opacity = "0.4";
+    } else {
+      // 個別選択状態: すべて有効化
+      offChk.checked = false;
+      allChk.disabled = false;
+      placeChks.forEach(function(c) { c.disabled = false; });
+      if (placeList) placeList.style.opacity = "1";
+    }
+  }
+
   offChk.addEventListener("change", function() {
     if (this.checked) {
       allChk.checked = false;
-      allChk.disabled = true;
-      placeChks.forEach(c => { c.checked = false; c.disabled = true; });
-      if (placeList) placeList.style.opacity = "0.4";
     } else {
-      allChk.disabled = false;
+      // OFF解除 → すべて通知をデフォルトONにする
       allChk.checked = true;
-      placeChks.forEach(c => { c.disabled = true; });
-      if (placeList) placeList.style.opacity = "0.4";
     }
+    applyPlaceState();
   });
 
   allChk.addEventListener("change", function() {
     if (this.checked) {
       offChk.checked = false;
-      placeChks.forEach(c => { c.checked = false; c.disabled = true; });
-      if (placeList) placeList.style.opacity = "0.4";
-    } else {
-      placeChks.forEach(c => { c.disabled = false; });
-      if (placeList) placeList.style.opacity = "1";
     }
+    applyPlaceState();
   });
 
-  placeChks.forEach(c => {
+  placeChks.forEach(function(c) {
     c.addEventListener("change", function() {
-      var anyChecked = [...placeChks].some(x => x.checked);
+      var anyChecked = [...placeChks].some(function(x) { return x.checked; });
       if (anyChecked) {
         allChk.checked = false;
         offChk.checked = false;
       }
+      applyPlaceState();
     });
   });
 
-  // ★変更: 初期状態（place_off がデフォルト checked に対応）
-  if (offChk.checked) {
-    allChk.checked = false;
-    allChk.disabled = true;
-    placeChks.forEach(c => { c.checked = false; c.disabled = true; });
-    if (placeList) placeList.style.opacity = "0.4";
-  } else if (allChk.checked) {
-    placeChks.forEach(c => { c.disabled = true; });
-    if (placeList) placeList.style.opacity = "0.4";
-  }
+  // 初期状態を適用
+  applyPlaceState();
 }
 
 // ===== デバイス登録 =====
