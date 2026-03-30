@@ -97,23 +97,17 @@
         <div class="menu-map-wrap" id="menuMapWrap">
           <img src="https://raw.githubusercontent.com/kimura-jane/kanatake-v2/main/gazo/IMG_5227.jpeg"
                alt="おにぎり屋かなたけ メニュー" class="menu-map-img" id="menuMapImg">
-          <!-- 1段目: おにぎり3つ (画像上部15%がタイトル、1段目は15%〜42%) -->
           <div class="menu-hotspot" style="left:1%;top:15%;width:32%;height:27%;" data-menu="IMG_5220" data-name="小松菜と炙り鮭チーズ"></div>
           <div class="menu-hotspot" style="left:34%;top:15%;width:32%;height:27%;" data-menu="IMG_5221" data-name="山わさびとクリームチーズ"></div>
           <div class="menu-hotspot" style="left:67%;top:15%;width:32%;height:27%;" data-menu="IMG_5222" data-name="ダブル昆布"></div>
-          <!-- 2段目: おにぎり3つ (42%〜68%) -->
           <div class="menu-hotspot" style="left:1%;top:42%;width:32%;height:26%;" data-menu="IMG_5223" data-name="梅きんぴらごぼう"></div>
           <div class="menu-hotspot" style="left:34%;top:42%;width:32%;height:26%;" data-menu="IMG_5224" data-name="大葉みそ"></div>
           <div class="menu-hotspot" style="left:67%;top:42%;width:32%;height:26%;" data-menu="IMG_5226" data-name="じゃがいもとカレーそぼろ"></div>
-          <!-- 3段目: みそ汁・ポリ茶瓶 (68%〜81%) -->
           <div class="menu-hotspot" style="left:1%;top:68%;width:49%;height:13%;" data-menu="IMG_5231" data-name="本日の限定みそ汁"></div>
           <div class="menu-hotspot" style="left:51%;top:68%;width:48%;height:13%;" data-menu="IMG_5230" data-name="ポリ茶瓶（お茶）"></div>
-          <!-- 4段目左: 玄米だんご (81%〜95%) -->
           <div class="menu-hotspot" style="left:1%;top:81%;width:49%;height:14%;" data-menu="IMG_5228" data-name="女神の玄米だんご"></div>
-          <!-- 4段目右: 女神のほほえみ（個別写真なし） -->
         </div>
 
-        <!-- のり弁セクション -->
         <div class="menu-noriben">
           <h3 class="menu-noriben-title">🍱 のり弁</h3>
           <div class="menu-noriben-grid">
@@ -280,18 +274,23 @@
           </label>
         </div>
 
+        <!-- ★修正: checkbox → radio に変更 -->
         <div class="settings-card">
           <p class="settings-card-title">📍 通知する出店場所</p>
           <label class="settings-option">
-            <input type="checkbox" id="place_all">
+            <input type="radio" name="placeMode" id="place_off" value="off" checked>
+            <span class="settings-option-text">OFF（通知しない）</span>
+          </label>
+          <label class="settings-option">
+            <input type="radio" name="placeMode" id="place_all" value="all">
             <span class="settings-option-text">すべての出店を通知する</span>
           </label>
           <label class="settings-option">
-            <input type="checkbox" id="place_off" checked>
-            <span class="settings-option-text">OFF（通知しない）</span>
+            <input type="radio" name="placeMode" id="place_custom" value="custom">
+            <span class="settings-option-text">場所を選んで通知</span>
           </label>
           <div id="placeList" class="settings-places">
-            <p class="settings-places-title">または、場所を選んで通知：</p>
+            <p class="settings-places-title">通知する場所を選択：</p>
             <label class="settings-option">
               <input type="checkbox" class="placeChk" value="sakura_hospital">
               <span class="settings-option-text">川口さくら病院</span>
@@ -311,7 +310,7 @@
           </div>
           <div class="settings-note">
             <span class="settings-note-icon">💡</span>
-            <span>「すべての出店を通知する」がONの場合、個別の場所選択は無効になります</span>
+            <span>「場所を選んで通知」を選ぶと、個別の場所を選択できます</span>
           </div>
         </div>
         <button class="btn btn-primary btn-full" id="pushBtn" type="button">🔔 通知を受け取る</button>
