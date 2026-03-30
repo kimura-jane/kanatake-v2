@@ -52,7 +52,7 @@ workflows:
           cd $CM_BUILD_DIR/ios/App
           sed -i '' 's/CURRENT_PROJECT_VERSION = [^;]*/CURRENT_PROJECT_VERSION = 25/' App.xcodeproj/project.pbxproj
           sed -i '' 's/MARKETING_VERSION = [^;]*/MARKETING_VERSION = 1.1/' App.xcodeproj/project.pbxproj
-          echo "Set CURRENT_PROJECT_VERSION=24, MARKETING_VERSION=1.1"
+          echo "Set CURRENT_PROJECT_VERSION=25, MARKETING_VERSION=1.1"
       - name: Build ipa for distribution
         script: |
           cd $CM_BUILD_DIR/ios/App
