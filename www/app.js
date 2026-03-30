@@ -173,7 +173,6 @@ function initMenuModal() {
   const closeBtn = document.getElementById("menuModalClose");
   if (!modal || !modalImg || !closeBtn) return;
 
-  // 全体写真のホットスポット
   document.querySelectorAll(".menu-hotspot").forEach(el => {
     el.addEventListener("click", () => {
       const file = el.dataset.menu;
@@ -186,7 +185,6 @@ function initMenuModal() {
     });
   });
 
-  // のり弁の個別画像
   document.querySelectorAll(".menu-noriben-item").forEach(el => {
     el.addEventListener("click", () => {
       const file = el.dataset.menu;
@@ -199,7 +197,6 @@ function initMenuModal() {
     });
   });
 
-  // 閉じる
   closeBtn.addEventListener("click", () => {
     modal.classList.remove("active");
   });
@@ -227,18 +224,16 @@ function setupNativePushUI() {
   }
 }
 
-// ===== APNs 設定保存 ★変更: ON/OFF方式 =====
+// ===== APNs 設定保存 ★変更: ON/OFF + placeMode方式 =====
 async function saveApnsSettings() {
   var statusEl = document.getElementById("pushStatus");
   statusEl.className = "result-text loading";
   statusEl.textContent = "⏳ 保存中…";
 
   try {
-    // ON/OFF ラジオボタンを取得
     var pushOnOff = (document.querySelector('input[name="pushOnOff"]:checked') || {}).value || "off";
 
     if (pushOnOff === "off") {
-      // OFF → hour: null, places: ["off"] を送信
       var res = await fetch(PUSH_API_BASE + "/apns-settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -250,13 +245,12 @@ async function saveApnsSettings() {
       return;
     }
 
-    // ON → 時間と場所を取得
     var hour = document.querySelector('input[name="notifyHour"]:checked');
     var hourVal = hour ? parseInt(hour.value) : 21;
 
-    var allPlaces = document.getElementById("place_all").checked;
+    var placeMode = (document.querySelector('input[name="placeMode"]:checked') || {}).value || "all";
     var places;
-    if (allPlaces) {
+    if (placeMode === "all") {
       places = [];
     } else {
       places = [...document.querySelectorAll(".placeChk:checked")].map(function(x) { return x.value; });
@@ -286,18 +280,14 @@ async function saveApnsSettings() {
   }
 }
 
-// ===== 通知 UI 制御 ★変更: ON/OFF → 詳細表示切替 =====
+// ===== 通知 UI 制御 ★変更: ON/OFF → 詳細表示、placeMode ラジオで場所切替 =====
 function syncPlaceUI() {
-  // ON/OFF ラジオボタン
   var pushOnOffRadios = document.querySelectorAll('input[name="pushOnOff"]');
   var detailArea = document.getElementById("pushSettingsDetail");
-
-  // 場所選択: すべて / 個別
-  var allChk = document.getElementById("place_all");
+  var placeModeRadios = document.querySelectorAll('input[name="placeMode"]');
   var placeChks = document.querySelectorAll(".placeChk");
   var placeList = document.getElementById("placeList");
 
-  // ON/OFF の表示切替
   function applyOnOff() {
     var val = (document.querySelector('input[name="pushOnOff"]:checked') || {}).value || "off";
     if (detailArea) {
@@ -305,40 +295,25 @@ function syncPlaceUI() {
     }
   }
 
-  // 場所モード（すべて / 個別）
   function applyPlaceMode() {
-    if (!allChk) return;
-    if (allChk.checked) {
-      placeChks.forEach(function(c) { c.checked = false; c.disabled = true; });
-      if (placeList) placeList.style.opacity = "0.4";
-    } else {
+    var mode = (document.querySelector('input[name="placeMode"]:checked') || {}).value || "all";
+    if (mode === "custom") {
       placeChks.forEach(function(c) { c.disabled = false; });
       if (placeList) placeList.style.opacity = "1";
+    } else {
+      placeChks.forEach(function(c) { c.disabled = true; c.checked = false; });
+      if (placeList) placeList.style.opacity = "0.4";
     }
   }
 
-  // ON/OFF イベント
   pushOnOffRadios.forEach(function(r) {
     r.addEventListener("change", applyOnOff);
   });
 
-  // 「すべて」チェックボックスイベント
-  if (allChk) {
-    allChk.addEventListener("change", applyPlaceMode);
-  }
-
-  // 個別場所チェック → すべてを解除
-  placeChks.forEach(function(c) {
-    c.addEventListener("change", function() {
-      var anyChecked = [...placeChks].some(function(x) { return x.checked; });
-      if (anyChecked && allChk) {
-        allChk.checked = false;
-      }
-      applyPlaceMode();
-    });
+  placeModeRadios.forEach(function(r) {
+    r.addEventListener("change", applyPlaceMode);
   });
 
-  // 初期状態を適用
   applyOnOff();
   applyPlaceMode();
 }
@@ -880,7 +855,7 @@ document.getElementById("birthday-confirm-btn").addEventListener("click", async 
   } catch (e) { alert("通信エラーが発生しました"); }
 });
 
-// ===== FiNANCiEクーポン（コード引換）★変更 =====
+// ===== FiNANCiEクーポン（コード引換） =====
 document.getElementById("coupon-code-btn").addEventListener("click", async () => {
   const code = document.getElementById("coupon-code-input").value.trim();
   const resultEl = document.getElementById("coupon-code-result");
@@ -912,7 +887,7 @@ document.getElementById("coupon-code-btn").addEventListener("click", async () =>
   }
 });
 
-// ===== ★新規: 保有クーポン =====
+// ===== 保有クーポン =====
 async function loadMyCoupons() {
   const area = document.getElementById("my-coupons-area");
   const list = document.getElementById("my-coupons-list");
@@ -1257,7 +1232,7 @@ document.getElementById("cache-clear-btn").addEventListener("click", async () =>
   }
 });
 
-// ===== Web Push 登録（ブラウザ用）★変更: ON/OFF方式 =====
+// ===== Web Push 登録（ブラウザ用）★変更: ON/OFF + placeMode方式 =====
 async function doPushRegister() {
   var statusEl = document.getElementById("pushStatus");
   statusEl.className = "result-text loading";
@@ -1270,11 +1245,9 @@ async function doPushRegister() {
       return;
     }
 
-    // ON/OFF ラジオボタンを取得
     var pushOnOff = (document.querySelector('input[name="pushOnOff"]:checked') || {}).value || "off";
 
     if (pushOnOff === "off") {
-      // OFF → 既存のサブスクリプションがあれば解除して places: ["off"] を送信
       var reg = await navigator.serviceWorker.ready;
       var existingSub = await reg.pushManager.getSubscription();
       if (existingSub) {
@@ -1301,9 +1274,9 @@ async function doPushRegister() {
     var hour = document.querySelector('input[name="notifyHour"]:checked');
     var hourVal = hour ? parseInt(hour.value) : 21;
 
-    var allPlaces = document.getElementById("place_all").checked;
+    var placeMode = (document.querySelector('input[name="placeMode"]:checked') || {}).value || "all";
     var places;
-    if (allPlaces) {
+    if (placeMode === "all") {
       places = [];
     } else {
       places = [...document.querySelectorAll(".placeChk:checked")].map(function(x) { return x.value; });
