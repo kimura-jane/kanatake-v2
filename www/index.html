@@ -83,7 +83,6 @@
     <!-- ===== クーポン ===== -->
     <section class="page" id="page-coupon">
 
-      <!-- メニュー（改善版） -->
       <div class="section-card">
         <h2 class="section-title">🍙 メニュー</h2>
         <div class="menu-notice">
@@ -124,7 +123,6 @@
         </div>
       </div>
 
-      <!-- 女神のほほえみクーポン -->
       <div class="section-card" id="megami-coupon-area" style="display:none;">
         <h2 class="section-title">🌾 女神のほほえみクーポン</h2>
         <div class="coupon-show-card">
@@ -136,7 +134,6 @@
         </div>
       </div>
 
-      <!-- 初回クーポン -->
       <div class="section-card" id="welcome-coupon-area">
         <h2 class="section-title">🎁 初回クーポン</h2>
         <div id="welcome-coupon-content">
@@ -172,7 +169,6 @@
         </div>
       </div>
 
-      <!-- 誕生日クーポン -->
       <div class="section-card" id="birthday-coupon-area" style="display:none;">
         <h2 class="section-title">🎂 誕生日クーポン</h2>
         <div id="birthday-coupon-content">
@@ -207,13 +203,11 @@
         </div>
       </div>
 
-      <!-- 保有クーポン -->
       <div class="section-card" id="my-coupons-area" style="display:none;">
         <h2 class="section-title">🎫 保有クーポン</h2>
         <div id="my-coupons-list"></div>
       </div>
 
-      <!-- FiNANCiEクーポン -->
       <div class="section-card">
         <h2 class="section-title">🎫 FiNANCiEクーポン</h2>
         <p class="coupon-desc">クーポンコードをお持ちの方はこちら</p>
@@ -262,62 +256,74 @@
     <section class="page" id="page-settings">
       <div class="section-card">
         <h2 class="section-title">🔔 通知設定</h2>
-        <div class="settings-card">
-          <p class="settings-card-title">⏰ 通知する時間</p>
-          <label class="settings-option">
-            <input type="radio" name="notifyHour" value="18">
-            <span class="settings-option-text">前日 18:00 に通知</span>
-          </label>
-          <label class="settings-option">
-            <input type="radio" name="notifyHour" value="21">
-            <span class="settings-option-text">前日 21:00 に通知</span>
-          </label>
-        </div>
 
-        <!-- ★修正: checkbox → radio に変更 -->
+        <!-- ★1段目: 通知 ON / OFF -->
         <div class="settings-card">
-          <p class="settings-card-title">📍 通知する出店場所</p>
+          <p class="settings-card-title">🔔 出店通知</p>
           <label class="settings-option">
-            <input type="radio" name="placeMode" id="place_off" value="off" checked>
+            <input type="radio" name="pushOnOff" id="push_off" value="off" checked>
             <span class="settings-option-text">OFF（通知しない）</span>
           </label>
           <label class="settings-option">
-            <input type="radio" name="placeMode" id="place_all" value="all">
-            <span class="settings-option-text">すべての出店を通知する</span>
+            <input type="radio" name="pushOnOff" id="push_on" value="on">
+            <span class="settings-option-text">ON（通知する）</span>
           </label>
-          <label class="settings-option">
-            <input type="radio" name="placeMode" id="place_custom" value="custom">
-            <span class="settings-option-text">場所を選んで通知</span>
-          </label>
-          <div id="placeList" class="settings-places">
-            <p class="settings-places-title">通知する場所を選択：</p>
+        </div>
+
+        <!-- ★2段目以降: ONの時だけ表示 -->
+        <div id="pushSettingsDetail" style="display:none;">
+          <div class="settings-card">
+            <p class="settings-card-title">⏰ 通知する時間</p>
             <label class="settings-option">
-              <input type="checkbox" class="placeChk" value="sakura_hospital">
-              <span class="settings-option-text">川口さくら病院</span>
+              <input type="radio" name="notifyHour" value="18">
+              <span class="settings-option-text">前日 18:00 に通知</span>
             </label>
             <label class="settings-option">
-              <input type="checkbox" class="placeChk" value="dokkyo">
-              <span class="settings-option-text">獨協大学</span>
-            </label>
-            <label class="settings-option">
-              <input type="checkbox" class="placeChk" value="saitama_cityhall">
-              <span class="settings-option-text">さいたま市役所</span>
-            </label>
-            <label class="settings-option">
-              <input type="checkbox" class="placeChk" value="dynam_togasaki">
-              <span class="settings-option-text">ダイナム戸ケ崎</span>
+              <input type="radio" name="notifyHour" value="21" checked>
+              <span class="settings-option-text">前日 21:00 に通知</span>
             </label>
           </div>
-          <div class="settings-note">
-            <span class="settings-note-icon">💡</span>
-            <span>「場所を選んで通知」を選ぶと、個別の場所を選択できます</span>
+
+          <div class="settings-card">
+            <p class="settings-card-title">📍 通知する出店場所</p>
+            <label class="settings-option">
+              <input type="radio" name="placeMode" id="place_all" value="all" checked>
+              <span class="settings-option-text">すべての出店を通知する</span>
+            </label>
+            <label class="settings-option">
+              <input type="radio" name="placeMode" id="place_custom" value="custom">
+              <span class="settings-option-text">場所を選んで通知</span>
+            </label>
+            <div id="placeList" class="settings-places">
+              <p class="settings-places-title">通知する場所を選択：</p>
+              <label class="settings-option">
+                <input type="checkbox" class="placeChk" value="sakura_hospital">
+                <span class="settings-option-text">川口さくら病院</span>
+              </label>
+              <label class="settings-option">
+                <input type="checkbox" class="placeChk" value="dokkyo">
+                <span class="settings-option-text">獨協大学</span>
+              </label>
+              <label class="settings-option">
+                <input type="checkbox" class="placeChk" value="saitama_cityhall">
+                <span class="settings-option-text">さいたま市役所</span>
+              </label>
+              <label class="settings-option">
+                <input type="checkbox" class="placeChk" value="dynam_togasaki">
+                <span class="settings-option-text">ダイナム戸ケ崎</span>
+              </label>
+            </div>
+            <div class="settings-note">
+              <span class="settings-note-icon">💡</span>
+              <span>「場所を選んで通知」を選ぶと、個別の場所を選べます</span>
+            </div>
           </div>
         </div>
-        <button class="btn btn-primary btn-full" id="pushBtn" type="button">🔔 通知を受け取る</button>
+
+        <button class="btn btn-primary btn-full" id="pushBtn" type="button">🔔 通知設定を保存</button>
         <p id="pushStatus" class="result-text"></p>
       </div>
 
-      <!-- 誕生月登録 -->
       <div class="section-card">
         <h2 class="section-title">🎂 誕生月登録</h2>
         <p class="settings-desc">誕生月を登録すると、毎年お誕生月にクーポンがもらえます！</p>
@@ -345,7 +351,6 @@
         <p id="birth-month-result" class="result-text"></p>
       </div>
 
-      <!-- チェックイン履歴 -->
       <div class="section-card">
         <h2 class="section-title">📋 来店履歴</h2>
         <div id="checkin-history" class="checkin-history">
@@ -353,7 +358,6 @@
         </div>
       </div>
 
-      <!-- シェア -->
       <div class="section-card">
         <h2 class="section-title">📤 シェア</h2>
         <p class="settings-desc">おにぎり屋かなたけをシェアしよう！</p>
@@ -363,7 +367,6 @@
         </div>
       </div>
 
-      <!-- お問い合わせ -->
       <div class="section-card">
         <h2 class="section-title">📩 お問い合わせ</h2>
         <p class="settings-desc">営業に関するお問い合わせ</p>
@@ -372,7 +375,6 @@
         <a href="https://x.com/kimura_jane" target="_blank" rel="noopener" class="btn btn-secondary btn-full">𝕏 @kimura_jane にDM</a>
       </div>
 
-      <!-- キャッシュクリア -->
       <div class="section-card">
         <h2 class="section-title">🔧 メンテナンス</h2>
         <p class="settings-desc">表示がおかしいときはキャッシュをクリアしてください</p>
@@ -380,7 +382,6 @@
         <p id="cache-clear-result" class="result-text"></p>
       </div>
 
-      <!-- アプリ情報 -->
       <div class="section-card">
         <h2 class="section-title">ℹ️ アプリ情報</h2>
         <p class="app-info-text">おにぎり屋かなたけ v2.0</p>
@@ -415,7 +416,6 @@
 
 </div>
 
-<!-- 既存モーダル（カレンダー用） -->
 <div class="modal-overlay" id="modal">
   <div class="modal">
     <p class="modal-date" id="modalDate"></p>
@@ -426,7 +426,6 @@
   </div>
 </div>
 
-<!-- メニュー拡大モーダル（新規追加） -->
 <div class="menu-modal-overlay" id="menuModal">
   <div class="menu-modal-inner">
     <p class="menu-modal-name" id="menuModalName"></p>
