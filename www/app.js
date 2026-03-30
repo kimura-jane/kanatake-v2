@@ -220,10 +220,11 @@ function setupNativePushUI() {
     newBtn.addEventListener("click", saveApnsSettings);
   }
 
+  // ★変更: 初期メッセージを「設定を保存してください」に変更
   var pushStatus = document.getElementById("pushStatus");
   if (pushStatus) {
-    pushStatus.className = "result-text success";
-    pushStatus.textContent = "✅ 通知は自動で有効です（APNs）";
+    pushStatus.className = "result-text";
+    pushStatus.textContent = "通知を受け取るには、場所を選んで「通知設定を保存」を押してください";
   }
 }
 
@@ -314,8 +315,13 @@ function syncPlaceUI() {
     });
   });
 
-  // 初期状態
-  if (allChk.checked) {
+  // ★変更: 初期状態（place_off がデフォルト checked に対応）
+  if (offChk.checked) {
+    allChk.checked = false;
+    allChk.disabled = true;
+    placeChks.forEach(c => { c.checked = false; c.disabled = true; });
+    if (placeList) placeList.style.opacity = "0.4";
+  } else if (allChk.checked) {
     placeChks.forEach(c => { c.disabled = true; });
     if (placeList) placeList.style.opacity = "0.4";
   }
@@ -353,7 +359,6 @@ async function loadNotices() {
 
     let html = "";
 
-    // 最新1件は常に表示
     const latestBodyHtml = renderNoticeBody(latest.body);
     html += `
       <div class="notice-item">
@@ -362,7 +367,6 @@ async function loadNotices() {
       </div>
     `;
 
-    // 過去のお知らせがある場合
     if (older.length > 0) {
       html += `
         <div id="notices-older-toggle" class="notices-older-toggle">▼ 過去のお知らせ（${older.length}件）</div>
@@ -383,7 +387,6 @@ async function loadNotices() {
     el.innerHTML = html;
     moreBtn.style.display = "none";
 
-    // 過去のお知らせトグル
     const toggle = document.getElementById("notices-older-toggle");
     if (toggle) {
       toggle.addEventListener("click", function() {
