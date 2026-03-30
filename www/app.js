@@ -210,7 +210,7 @@ function initMenuModal() {
   });
 }
 
-// ===== ネイティブアプリ用: Push UI =====
+// ===== ネイティブアプリ用: Push UI ★変更 =====
 function setupNativePushUI() {
   var pushBtn = document.getElementById("pushBtn");
   if (pushBtn) {
@@ -220,50 +220,65 @@ function setupNativePushUI() {
     newBtn.addEventListener("click", saveApnsSettings);
   }
 
-  // ★変更: 初期メッセージを「設定を保存してください」に変更
   var pushStatus = document.getElementById("pushStatus");
   if (pushStatus) {
     pushStatus.className = "result-text";
-    pushStatus.textContent = "通知を受け取るには、場所を選んで「通知設定を保存」を押してください";
+    pushStatus.textContent = "通知をONにして「通知設定を保存」を押してください";
   }
 }
 
+// ===== APNs 設定保存 ★変更: ON/OFF方式 =====
 async function saveApnsSettings() {
   var statusEl = document.getElementById("pushStatus");
   statusEl.className = "result-text loading";
   statusEl.textContent = "⏳ 保存中…";
 
   try {
+    // ON/OFF ラジオボタンを取得
+    var pushOnOff = (document.querySelector('input[name="pushOnOff"]:checked') || {}).value || "off";
+
+    if (pushOnOff === "off") {
+      // OFF → hour: null, places: ["off"] を送信
+      var res = await fetch(PUSH_API_BASE + "/apns-settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ device_id: DEVICE_ID, hour: null, places: ["off"] })
+      });
+      var data = await res.json();
+      statusEl.className = data.ok ? "result-text success" : "result-text error";
+      statusEl.textContent = data.ok ? "✅ 通知をOFFにしました" : "❌ " + (data.error || "保存に失敗しました");
+      return;
+    }
+
+    // ON → 時間と場所を取得
     var hour = document.querySelector('input[name="notifyHour"]:checked');
     var hourVal = hour ? parseInt(hour.value) : 21;
 
-    var isOff = document.getElementById("place_off").checked;
     var allPlaces = document.getElementById("place_all").checked;
     var places;
-    if (isOff) {
-      places = ["off"];
-    } else if (allPlaces) {
+    if (allPlaces) {
       places = [];
     } else {
-      places = [...document.querySelectorAll(".placeChk:checked")].map(x => x.value);
+      places = [...document.querySelectorAll(".placeChk:checked")].map(function(x) { return x.value; });
+      if (places.length === 0) {
+        statusEl.className = "result-text error";
+        statusEl.textContent = "❌ 通知する場所を1つ以上選んでください";
+        return;
+      }
     }
 
-    var res = await fetch(PUSH_API_BASE + "/apns-settings", {
+    var res2 = await fetch(PUSH_API_BASE + "/apns-settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ device_id: DEVICE_ID, hour: hourVal, places: places })
     });
-    var data = await res.json();
-    if (data.ok) {
+    var data2 = await res2.json();
+    if (data2.ok) {
       statusEl.className = "result-text success";
-      if (isOff) {
-        statusEl.textContent = "✅ 通知をOFFにしました";
-      } else {
-        statusEl.textContent = "✅ 通知設定を保存しました！";
-      }
+      statusEl.textContent = "✅ 通知設定を保存しました！";
     } else {
       statusEl.className = "result-text error";
-      statusEl.textContent = "❌ " + (data.error || "保存に失敗しました");
+      statusEl.textContent = "❌ " + (data2.error || "保存に失敗しました");
     }
   } catch (e) {
     statusEl.className = "result-text error";
@@ -271,68 +286,61 @@ async function saveApnsSettings() {
   }
 }
 
-// ===== 場所 UI 排他制御（★修正済み） =====
+// ===== 通知 UI 制御 ★変更: ON/OFF → 詳細表示切替 =====
 function syncPlaceUI() {
-  var offChk = document.getElementById("place_off");
+  // ON/OFF ラジオボタン
+  var pushOnOffRadios = document.querySelectorAll('input[name="pushOnOff"]');
+  var detailArea = document.getElementById("pushSettingsDetail");
+
+  // 場所選択: すべて / 個別
   var allChk = document.getElementById("place_all");
   var placeChks = document.querySelectorAll(".placeChk");
   var placeList = document.getElementById("placeList");
 
-  if (!offChk || !allChk) return;
+  // ON/OFF の表示切替
+  function applyOnOff() {
+    var val = (document.querySelector('input[name="pushOnOff"]:checked') || {}).value || "off";
+    if (detailArea) {
+      detailArea.style.display = (val === "on") ? "block" : "none";
+    }
+  }
 
-  // UI の見た目と disabled を一括で同期する関数
-  function applyPlaceState() {
-    if (offChk.checked) {
-      // OFF状態: すべて無効化
-      allChk.checked = false;
-      allChk.disabled = true;
-      placeChks.forEach(function(c) { c.checked = false; c.disabled = true; });
-      if (placeList) placeList.style.opacity = "0.4";
-    } else if (allChk.checked) {
-      // すべて通知状態: 個別場所は無効化
-      offChk.checked = false;
-      allChk.disabled = false;
+  // 場所モード（すべて / 個別）
+  function applyPlaceMode() {
+    if (!allChk) return;
+    if (allChk.checked) {
       placeChks.forEach(function(c) { c.checked = false; c.disabled = true; });
       if (placeList) placeList.style.opacity = "0.4";
     } else {
-      // 個別選択状態: すべて有効化
-      offChk.checked = false;
-      allChk.disabled = false;
       placeChks.forEach(function(c) { c.disabled = false; });
       if (placeList) placeList.style.opacity = "1";
     }
   }
 
-  offChk.addEventListener("change", function() {
-    if (this.checked) {
-      allChk.checked = false;
-    } else {
-      // OFF解除 → すべて通知をデフォルトONにする
-      allChk.checked = true;
-    }
-    applyPlaceState();
+  // ON/OFF イベント
+  pushOnOffRadios.forEach(function(r) {
+    r.addEventListener("change", applyOnOff);
   });
 
-  allChk.addEventListener("change", function() {
-    if (this.checked) {
-      offChk.checked = false;
-    }
-    applyPlaceState();
-  });
+  // 「すべて」チェックボックスイベント
+  if (allChk) {
+    allChk.addEventListener("change", applyPlaceMode);
+  }
 
+  // 個別場所チェック → すべてを解除
   placeChks.forEach(function(c) {
     c.addEventListener("change", function() {
       var anyChecked = [...placeChks].some(function(x) { return x.checked; });
-      if (anyChecked) {
+      if (anyChecked && allChk) {
         allChk.checked = false;
-        offChk.checked = false;
       }
-      applyPlaceState();
+      applyPlaceMode();
     });
   });
 
   // 初期状態を適用
-  applyPlaceState();
+  applyOnOff();
+  applyPlaceMode();
 }
 
 // ===== デバイス登録 =====
@@ -1249,7 +1257,7 @@ document.getElementById("cache-clear-btn").addEventListener("click", async () =>
   }
 });
 
-// ===== Web Push 登録（ブラウザ用） =====
+// ===== Web Push 登録（ブラウザ用）★変更: ON/OFF方式 =====
 async function doPushRegister() {
   var statusEl = document.getElementById("pushStatus");
   statusEl.className = "result-text loading";
@@ -1259,6 +1267,21 @@ async function doPushRegister() {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
       statusEl.className = "result-text error";
       statusEl.textContent = "❌ このブラウザはプッシュ通知に対応していません";
+      return;
+    }
+
+    // ON/OFF ラジオボタンを取得
+    var pushOnOff = (document.querySelector('input[name="pushOnOff"]:checked') || {}).value || "off";
+
+    if (pushOnOff === "off") {
+      // OFF → 既存のサブスクリプションがあれば解除して places: ["off"] を送信
+      var reg = await navigator.serviceWorker.ready;
+      var existingSub = await reg.pushManager.getSubscription();
+      if (existingSub) {
+        await upsertSubscription(existingSub, null, ["off"]);
+      }
+      statusEl.className = "result-text success";
+      statusEl.textContent = "✅ 通知をOFFにしました";
       return;
     }
 
@@ -1278,25 +1301,23 @@ async function doPushRegister() {
     var hour = document.querySelector('input[name="notifyHour"]:checked');
     var hourVal = hour ? parseInt(hour.value) : 21;
 
-    var isOff = document.getElementById("place_off").checked;
     var allPlaces = document.getElementById("place_all").checked;
     var places;
-    if (isOff) {
-      places = ["off"];
-    } else if (allPlaces) {
+    if (allPlaces) {
       places = [];
     } else {
-      places = [...document.querySelectorAll(".placeChk:checked")].map(x => x.value);
+      places = [...document.querySelectorAll(".placeChk:checked")].map(function(x) { return x.value; });
+      if (places.length === 0) {
+        statusEl.className = "result-text error";
+        statusEl.textContent = "❌ 通知する場所を1つ以上選んでください";
+        return;
+      }
     }
 
     await upsertSubscription(sub, hourVal, places);
 
     statusEl.className = "result-text success";
-    if (isOff) {
-      statusEl.textContent = "✅ 通知をOFFにしました";
-    } else {
-      statusEl.textContent = "✅ 通知設定を保存しました！";
-    }
+    statusEl.textContent = "✅ 通知設定を保存しました！";
   } catch (e) {
     console.warn("push register error:", e);
     statusEl.className = "result-text error";
