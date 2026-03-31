@@ -159,7 +159,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadMyCoupons();
   await loadBirthMonth();
 
+  // ★ サーバーから通知設定を読み込んでUIに反映してから syncPlaceUI
+  await loadPushSettings();
   syncPlaceUI();
+
   if (!isNativeApp()) {
     registerSW().catch(() => {});
   }
@@ -221,6 +224,100 @@ function setupNativePushUI() {
   if (pushStatus) {
     pushStatus.className = "result-text";
     pushStatus.textContent = "通知をONにして「通知設定を保存」を押してください";
+  }
+}
+
+// ===== ★ サーバーから通知設定を読み込んでUIに反映 =====
+async function loadPushSettings() {
+  try {
+    // ネイティブアプリ → APNs設定を取得
+    if (isNativeApp()) {
+      var res = await fetch(PUSH_API_BASE + "/apns-settings?device_id=" + encodeURIComponent(DEVICE_ID));
+      var data = await res.json();
+      if (!data.ok || !data.registered) return;
+
+      // ON/OFF 復元
+      if (data.pushOn) {
+        document.getElementById("push_on").checked = true;
+      } else {
+        document.getElementById("push_off").checked = true;
+      }
+
+      // 時間 復元
+      if (data.hour === 18 || data.hour === 21) {
+        var hourRadio = document.querySelector('input[name="notifyHour"][value="' + data.hour + '"]');
+        if (hourRadio) hourRadio.checked = true;
+      }
+
+      // 場所 復元
+      var places = data.places || [];
+      var hasOff = places.indexOf("off") !== -1;
+      if (!hasOff && places.length > 0) {
+        document.getElementById("place_custom").checked = true;
+        document.querySelectorAll(".placeChk").forEach(function(chk) {
+          chk.checked = places.indexOf(chk.value) !== -1;
+        });
+      } else {
+        document.getElementById("place_all").checked = true;
+      }
+
+      // ステータス表示を更新
+      var pushStatus = document.getElementById("pushStatus");
+      if (pushStatus) {
+        if (data.pushOn) {
+          pushStatus.className = "result-text success";
+          pushStatus.textContent = "✅ 通知はONです";
+        } else {
+          pushStatus.className = "result-text";
+          pushStatus.textContent = "通知をONにして「通知設定を保存」を押してください";
+        }
+      }
+      return;
+    }
+
+    // ブラウザ（Web Push） → subscription があれば KV から取得
+    if ("serviceWorker" in navigator && "PushManager" in window) {
+      var reg = await navigator.serviceWorker.ready;
+      var existingSub = await reg.pushManager.getSubscription();
+      if (!existingSub) return;
+
+      var res2 = await fetch(PUSH_API_BASE + "/subs/get", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ endpoint: existingSub.endpoint })
+      });
+      var data2 = await res2.json();
+      if (!data2.ok || !data2.record) return;
+
+      var rec = data2.record;
+
+      // ON/OFF 復元
+      var recPlaces = rec.places || [];
+      var isOff = recPlaces.indexOf("off") !== -1;
+      if (!isOff && rec.hour) {
+        document.getElementById("push_on").checked = true;
+      } else {
+        document.getElementById("push_off").checked = true;
+      }
+
+      // 時間 復元
+      if (rec.hour === 18 || rec.hour === 21) {
+        var hourRadio2 = document.querySelector('input[name="notifyHour"][value="' + rec.hour + '"]');
+        if (hourRadio2) hourRadio2.checked = true;
+      }
+
+      // 場所 復元
+      if (!isOff && recPlaces.length > 0) {
+        document.getElementById("place_custom").checked = true;
+        document.querySelectorAll(".placeChk").forEach(function(chk) {
+          chk.checked = recPlaces.indexOf(chk.value) !== -1;
+        });
+      } else {
+        document.getElementById("place_all").checked = true;
+      }
+    }
+  } catch (e) {
+    console.warn("loadPushSettings failed:", e);
   }
 }
 
