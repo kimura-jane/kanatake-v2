@@ -1,4 +1,4 @@
-const CACHE_NAME = "kanatake-v2-cache-v1";
+const CACHE_NAME = "kanatake-v2-cache-v2";
 const ASSETS = [
   "/",
   "/index.html",
