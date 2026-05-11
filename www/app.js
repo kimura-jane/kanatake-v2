@@ -42,6 +42,7 @@ const ASSETS_BASE = "https://kimura-jane.github.io/kanatae-app";
 const APP_URL = "https://kanatake-v2.pages.dev";
 const SHARE_URL = "https://apps.apple.com/app/id6760612778";
 const MENU_IMAGE_BASE = "https://raw.githubusercontent.com/kimura-jane/kanatake-v2/main/gazo/";
+const SPOTS_FEED_URL = `${ASSETS_BASE}/spots-feed.json`;
 
 const CHOICE_IMAGES = {
   "お茶": "IMG_5006.jpeg",
@@ -54,6 +55,52 @@ const CHOICE_EMOJI = {
   "ラムネ": "🥤 ラムネ",
   "ダンゴ": "🍡 ダンゴ"
 };
+
+// ===== 出店データ読み込み（spots-feed.json をマスターとして fetch） =====
+async function loadSpotsFeed() {
+  try {
+    const res = await fetch(SPOTS_FEED_URL, { cache: "no-cache" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const feed = await res.json();
+    if (!Array.isArray(feed)) throw new Error("feed is not array");
+
+    const dowChars = ["日","月","火","水","木","金","土"];
+
+    // カレンダー用: 年ごと・"6/27(土)" 形式（全件）
+    const byYear = {};
+    feed.forEach(item => {
+      if (!item || !item.date) return;
+      const parts = item.date.split("-").map(Number);
+      const y = parts[0], m = parts[1], d = parts[2];
+      if (!y || !m || !d) return;
+      const dow = dowChars[new Date(y, m - 1, d).getDay()];
+      if (!byYear[y]) byYear[y] = [];
+      byYear[y].push({ ...item, date: `${m}/${d}(${dow})` });
+    });
+    window.spotsAllByYear = byYear;
+
+    // 今日のJST日付を YYYY-MM-DD で組み立て（toISOStringはUTCになるので使わない）
+    const now = new Date();
+    const todayISO = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+
+    // マップ用: 今日以降のみ・"06/27" 形式
+    window.spots = feed
+      .filter(item => item && item.date && item.date >= todayISO)
+      .map(item => {
+        const parts = item.date.split("-").map(Number);
+        const y = parts[0], m = parts[1], d = parts[2];
+        return {
+          ...item,
+          date: `${String(m).padStart(2,"0")}/${String(d).padStart(2,"0")}`,
+          year: y
+        };
+      });
+  } catch (e) {
+    console.error("loadSpotsFeed failed:", e);
+    window.spots = [];
+    window.spotsAllByYear = {};
+  }
+}
 
 // ===== ネイティブ判定 =====
 function isNativeApp() {
@@ -134,6 +181,7 @@ function switchPage(page) {
 // ===== 初期化 =====
 document.addEventListener("DOMContentLoaded", async () => {
   DEVICE_ID = await getDeviceIdAsync();
+  await loadSpotsFeed();
 
   await registerDevice();
   document.getElementById("device-id-display").textContent = DEVICE_ID;
