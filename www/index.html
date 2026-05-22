@@ -75,6 +75,22 @@
           <ol class="spot-list" id="spotList"></ol>
         </div>
       </div>
+
+      <!-- ===== FiNANCiE応援コミュニティ ===== -->
+      <div class="section-card financie-card">
+        <h2 class="section-title">💎 FiNANCiE応援コミュニティ</h2>
+        <p class="financie-lead">「おにぎり屋かなたけ」の応援コミュニティに参加しよう！</p>
+        <p class="financie-desc">活動のお知らせ・限定投稿が見られます。定期的にリワード（抽選会）でアプリで使えるクーポンも当たるのでチェックしてね 🎁</p>
+        <div class="financie-code-box">
+          <span class="financie-code-label">🎁 招待コード</span>
+          <span class="financie-code" id="financie-code">ET39M2</span>
+          <button class="financie-copy-btn" id="financie-copy-btn" type="button">📋 コピー</button>
+        </div>
+        <p class="financie-bonus">このコードを使って登録すると <strong>1トークンプレゼント</strong> 🎉<br>さらに運営からも追加でトークンをお渡しするので、ぜひ感想や応援メッセージを書き込んでね 💬</p>
+        <a href="https://financie.jp/users/onigiriyakanatake" target="_blank" rel="noopener" class="btn btn-financie btn-full">💎 FiNANCiEを開く</a>
+        <p class="financie-note">※ブラウザからその場で会員登録できます。アプリは後からのダウンロードでOK！</p>
+        <p id="financie-copy-result" class="result-text"></p>
+      </div>
     </section>
 
     <!-- ===== クーポン ===== -->
@@ -251,23 +267,18 @@
 
     <!-- ===== 設定 ===== -->
     <section class="page" id="page-settings">
-      <div class="section-card">
-        <h2 class="section-title">🔔 通知設定</h2>
 
-        <!-- ★1段目: 通知 ON / OFF -->
-        <div class="settings-card">
-          <p class="settings-card-title">🔔 出店通知</p>
-          <label class="settings-option">
-            <input type="radio" name="pushOnOff" id="push_off" value="off" checked>
-            <span class="settings-option-text">OFF（通知しない）</span>
-          </label>
-          <label class="settings-option">
-            <input type="radio" name="pushOnOff" id="push_on" value="on">
-            <span class="settings-option-text">ON（通知する）</span>
-          </label>
-        </div>
+      <div class="section-card" id="push-section">
+        <h2 class="section-title">🔔 出店通知</h2>
+        <label class="settings-option">
+          <input type="radio" name="pushOnOff" value="off" checked>
+          <span class="settings-option-text">OFF（通知しない）</span>
+        </label>
+        <label class="settings-option">
+          <input type="radio" name="pushOnOff" value="on">
+          <span class="settings-option-text">ON（通知する）</span>
+        </label>
 
-        <!-- ★2段目以降: ONの時だけ表示 -->
         <div id="pushSettingsDetail" style="display:none;">
           <div class="settings-card">
             <p class="settings-card-title">⏰ 通知する時間</p>
@@ -284,14 +295,14 @@
           <div class="settings-card">
             <p class="settings-card-title">📍 通知する出店場所</p>
             <label class="settings-option">
-              <input type="radio" name="placeMode" id="place_all" value="all" checked>
+              <input type="radio" name="placeMode" value="all" checked>
               <span class="settings-option-text">すべての出店を通知する</span>
             </label>
             <label class="settings-option">
-              <input type="radio" name="placeMode" id="place_custom" value="custom">
+              <input type="radio" name="placeMode" value="custom">
               <span class="settings-option-text">場所を選んで通知</span>
             </label>
-            <div id="placeList" class="settings-places">
+            <div class="settings-places" id="placeList">
               <p class="settings-places-title">通知する場所を選択：</p>
               <label class="settings-option">
                 <input type="checkbox" class="placeChk" value="sakura_hospital">
@@ -329,18 +340,10 @@
           <div class="birthday-select-wrap">
             <select id="birth-month-select" class="input-field select-field">
               <option value="">選択してください</option>
-              <option value="1">1月</option>
-              <option value="2">2月</option>
-              <option value="3">3月</option>
-              <option value="4">4月</option>
-              <option value="5">5月</option>
-              <option value="6">6月</option>
-              <option value="7">7月</option>
-              <option value="8">8月</option>
-              <option value="9">9月</option>
-              <option value="10">10月</option>
-              <option value="11">11月</option>
-              <option value="12">12月</option>
+              <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+              <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
+              <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
+              <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
             </select>
             <button class="btn btn-primary" id="birth-month-btn">登録</button>
           </div>
@@ -413,6 +416,7 @@
 
 </div>
 
+<!-- カレンダーモーダル -->
 <div class="modal-overlay" id="modal">
   <div class="modal">
     <p class="modal-date" id="modalDate"></p>
@@ -423,6 +427,7 @@
   </div>
 </div>
 
+<!-- メニュー拡大モーダル -->
 <div class="menu-modal-overlay" id="menuModal">
   <div class="menu-modal-inner">
     <p class="menu-modal-name" id="menuModalName"></p>
@@ -430,6 +435,38 @@
     <button class="menu-modal-close" id="menuModalClose">✕ 閉じる</button>
   </div>
 </div>
+
+<script>
+// FiNANCiE招待コード コピー処理
+(function(){
+  const btn = document.getElementById('financie-copy-btn');
+  const result = document.getElementById('financie-copy-result');
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    const code = document.getElementById('financie-code').textContent.trim();
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(code);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = code;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      result.textContent = '✅ 招待コードをコピーしました！';
+      result.className = 'result-text success';
+    } catch (e) {
+      result.textContent = '⚠️ コピーに失敗しました。長押しで選択してください。';
+      result.className = 'result-text error';
+    }
+    setTimeout(() => { result.textContent = ''; result.className = 'result-text'; }, 3000);
+  });
+})();
+</script>
 
 <script src="app.js"></script>
 </body>
