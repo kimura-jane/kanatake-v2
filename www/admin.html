@@ -19,6 +19,7 @@
     .btn-primary { background: #f5a623; color: white; }
     .btn-danger { background: #e74c3c; color: white; }
     .btn-success { background: #27ae60; color: white; }
+    .btn-secondary { background: #6c757d; color: white; }
     .btn-sm { padding: 6px 12px; font-size: 12px; }
     input, textarea, select { width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-family: inherit; font-size: 13px; margin-bottom: 8px; background: white; }
     textarea { min-height: 80px; resize: vertical; }
@@ -49,6 +50,13 @@
     .coupon-thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; margin-right: 8px; vertical-align: middle; }
     #admin-content { display: none; }
     .form-label { font-size: 12px; color: #666; font-weight: 700; margin: 4px 0 4px; display: block; }
+    .bulk-codes-box {
+      width: 100%; min-height: 180px; padding: 10px;
+      border: 2px solid #f5a623; border-radius: 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px; background: #fffdf6; resize: vertical;
+    }
+    .bulk-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
   </style>
 </head>
 <body>
@@ -102,8 +110,23 @@
         <input type="text" id="coupon-image" placeholder="画像URL（例: https://...jpg）任意">
         <div id="coupon-image-preview" style="margin-bottom:8px;"></div>
 
+        <label class="form-label">🔢 発行枚数（1〜100）</label>
+        <input type="number" id="coupon-count" min="1" max="100" value="1">
+
         <button class="btn btn-primary" id="coupon-create-btn">発行する</button>
         <p id="coupon-create-msg"></p>
+
+        <!-- 一括発行結果 -->
+        <div id="bulk-result" style="display:none; margin-top:12px;">
+          <label class="form-label">📋 発行されたコード一覧</label>
+          <textarea id="bulk-codes" class="bulk-codes-box" readonly></textarea>
+          <div class="bulk-actions">
+            <button class="btn btn-success btn-sm" id="copy-codes-btn">📋 全コードをコピー</button>
+            <button class="btn btn-primary btn-sm" id="download-csv-btn">💾 CSVダウンロード</button>
+            <button class="btn btn-secondary btn-sm" id="clear-bulk-btn">✖ 閉じる</button>
+          </div>
+          <p id="copy-codes-msg"></p>
+        </div>
       </div>
       <div class="card" id="coupons-list-container">
         <h2>発行済みクーポン</h2>
@@ -294,44 +317,139 @@ document.getElementById("coupon-image-preset").addEventListener("change", (e) =>
 // 画像URL入力プレビュー
 document.getElementById("coupon-image").addEventListener("input", updateImagePreview);
 
+// 最後に発行したクーポンの情報（CSV出力用）
+let lastIssued = { name: "", prize: "", codes: [] };
+
 document.getElementById("coupon-create-btn").addEventListener("click", async () => {
   const name = document.getElementById("coupon-name").value.trim();
   const prize = document.getElementById("coupon-prize").value.trim();
   const image = document.getElementById("coupon-image").value.trim();
+  const countRaw = document.getElementById("coupon-count").value;
+  const count = parseInt(countRaw, 10);
   const msgEl = document.getElementById("coupon-create-msg");
+  const bulkResult = document.getElementById("bulk-result");
+  const bulkCodesEl = document.getElementById("bulk-codes");
 
   if (!prize) { msgEl.innerHTML = '<span class="msg msg-error">特典名を入力</span>'; return; }
+  if (!count || count < 1 || count > 100) {
+    msgEl.innerHTML = '<span class="msg msg-error">発行枚数は 1〜100 で指定してください</span>';
+    return;
+  }
 
-  msgEl.innerHTML = '<span class="msg msg-info">発行中…</span>';
+  // 確認（5枚以上のとき）
+  if (count >= 5) {
+    if (!confirm(`「${name || prize}」を ${count} 枚 発行します。よろしいですか？`)) return;
+  }
+
+  msgEl.innerHTML = `<span class="msg msg-info">${count} 枚発行中…</span>`;
+  bulkResult.style.display = "none";
 
   try {
-    const res = await fetch(`${API_BASE}/admin/coupons`, {
-      method: "POST", headers: authHeaders(),
-      body: JSON.stringify({ prize, name: name || prize, image })
-    });
-
-    if (!res.ok) {
-      const text = await res.text();
-      msgEl.innerHTML = `<span class="msg msg-error">APIエラー (${res.status}): ${esc(text.substring(0, 200))}</span>`;
-      return;
-    }
-
-    const data = await res.json();
-    if (data.ok) {
-      msgEl.innerHTML = `<span class="msg msg-success">発行完了！ コード: <strong>${data.code}</strong></span>`;
-      document.getElementById("coupon-name").value = "";
-      document.getElementById("coupon-prize").value = "";
-      document.getElementById("coupon-image").value = "";
-      document.getElementById("coupon-image").readOnly = false;
-      document.getElementById("coupon-image-preset").value = "";
-      document.getElementById("coupon-image-preview").innerHTML = "";
-      loadAdminCoupons();
+    // 1枚なら従来API、複数枚なら一括APIを使う
+    let codes = [];
+    if (count === 1) {
+      const res = await fetch(`${API_BASE}/admin/coupons`, {
+        method: "POST", headers: authHeaders(),
+        body: JSON.stringify({ prize, name: name || prize, image })
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        msgEl.innerHTML = `<span class="msg msg-error">APIエラー (${res.status}): ${esc(text.substring(0, 200))}</span>`;
+        return;
+      }
+      const data = await res.json();
+      if (!data.ok) {
+        msgEl.innerHTML = `<span class="msg msg-error">${esc(data.error || "発行に失敗しました")}</span>`;
+        return;
+      }
+      codes = [data.code];
     } else {
-      msgEl.innerHTML = `<span class="msg msg-error">${esc(data.error || "発行に失敗しました")}</span>`;
+      const res = await fetch(`${API_BASE}/admin/coupons/bulk`, {
+        method: "POST", headers: authHeaders(),
+        body: JSON.stringify({ prize, name: name || prize, image, count })
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        msgEl.innerHTML = `<span class="msg msg-error">APIエラー (${res.status}): ${esc(text.substring(0, 200))}</span>`;
+        return;
+      }
+      const data = await res.json();
+      if (!data.ok) {
+        msgEl.innerHTML = `<span class="msg msg-error">${esc(data.error || "発行に失敗しました")}（生成済 ${data.generated || 0} 枚）</span>`;
+        return;
+      }
+      codes = data.codes || [];
     }
+
+    // 成功
+    lastIssued = { name: name || prize, prize, codes };
+    msgEl.innerHTML = `<span class="msg msg-success">✅ ${codes.length} 枚発行完了！</span>`;
+
+    // 一覧表示
+    bulkCodesEl.value = codes.join("\n");
+    bulkResult.style.display = "block";
+    document.getElementById("copy-codes-msg").innerHTML = "";
+
+    // フォームクリア（画像系は残す。連続発行しやすいように）
+    document.getElementById("coupon-count").value = "1";
+
+    loadAdminCoupons();
   } catch (e) {
     msgEl.innerHTML = `<span class="msg msg-error">通信エラー: ${esc(e.message)}</span>`;
   }
+});
+
+// 📋 全コードをコピー
+document.getElementById("copy-codes-btn").addEventListener("click", async () => {
+  const text = document.getElementById("bulk-codes").value;
+  const msgEl = document.getElementById("copy-codes-msg");
+  if (!text) { msgEl.innerHTML = '<span class="msg msg-error">コピーするコードがありません</span>'; return; }
+
+  try {
+    // モダンブラウザ
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      // フォールバック（iOSのwebviewやhttp環境向け）
+      const ta = document.getElementById("bulk-codes");
+      ta.select();
+      ta.setSelectionRange(0, 99999);
+      document.execCommand("copy");
+      window.getSelection().removeAllRanges();
+    }
+    const lines = text.split("\n").filter(Boolean).length;
+    msgEl.innerHTML = `<span class="msg msg-success">📋 ${lines} 件のコードをコピーしました！</span>`;
+  } catch (e) {
+    msgEl.innerHTML = `<span class="msg msg-error">コピー失敗: ${esc(e.message)}（テキストを長押し→コピーしてください）</span>`;
+  }
+});
+
+// 💾 CSVダウンロード
+document.getElementById("download-csv-btn").addEventListener("click", () => {
+  if (!lastIssued.codes.length) return;
+  const header = "code,name,prize\n";
+  const rows = lastIssued.codes.map(c =>
+    `${c},"${(lastIssued.name || "").replace(/"/g, '""')}","${(lastIssued.prize || "").replace(/"/g, '""')}"`
+  ).join("\n");
+  // Excelで開いたとき文字化けしないようBOM付き
+  const blob = new Blob(["\uFEFF" + header + rows], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `coupons_${ts}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+// ✖ 閉じる
+document.getElementById("clear-bulk-btn").addEventListener("click", () => {
+  document.getElementById("bulk-result").style.display = "none";
+  document.getElementById("bulk-codes").value = "";
+  document.getElementById("copy-codes-msg").innerHTML = "";
+  lastIssued = { name: "", prize: "", codes: [] };
 });
 
 async function loadAdminCoupons() {
