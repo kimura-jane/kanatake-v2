@@ -57,6 +57,24 @@
       font-size: 13px; background: #fffdf6; resize: vertical;
     }
     .bulk-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+
+    /* 発券モード選択 */
+    .issue-mode-box {
+      display: none;
+      background: #fff9e6;
+      border: 2px dashed #f5a623;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 8px;
+    }
+    .issue-mode-box.active { display: block; }
+    .issue-mode-radios { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 6px; }
+    .issue-mode-radios label {
+      display: flex; align-items: center; gap: 4px;
+      font-size: 13px; cursor: pointer; font-weight: 700;
+    }
+    .issue-mode-radios input[type="radio"] { width: auto; margin: 0 4px 0 0; }
+    .issue-mode-desc { font-size: 11px; color: #888; margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -104,6 +122,7 @@
           <option value="https://raw.githubusercontent.com/kimura-jane/kanatake-v2/main/www/IMG_5012.jpeg">🥤 ラムネ</option>
           <option value="https://raw.githubusercontent.com/kimura-jane/kanatake-v2/main/www/IMG_5007.jpeg">🍡 ダンゴ</option>
           <option value="https://raw.githubusercontent.com/kimura-jane/kanatake-v2/main/gazo/IMG_5881.jpeg">🍙 おにぎり</option>
+          <option value="https://raw.githubusercontent.com/kimura-jane/kanatake-v2/main/gazo/IMG_6393.jpeg">🎬 プペル鑑賞券</option>
           <option value="__custom__">✏️ カスタム入力</option>
         </select>
 
@@ -113,15 +132,33 @@
         <label class="form-label">🔢 発行枚数（1〜100）</label>
         <input type="number" id="coupon-count" min="1" max="100" value="1">
 
+        <!-- 5枚以上のとき表示する発券モード -->
+        <div id="issue-mode-box" class="issue-mode-box">
+          <label class="form-label" style="margin:0;">📦 発券モード（5枚以上）</label>
+          <div class="issue-mode-radios">
+            <label>
+              <input type="radio" name="issue-mode" value="individual" checked>
+              🎟️ 個別発券
+            </label>
+            <label>
+              <input type="radio" name="issue-mode" value="bulk">
+              📦 一括発券
+            </label>
+          </div>
+          <p class="issue-mode-desc" id="issue-mode-desc">
+            🎟️ 個別: 1人1コードで配布する用（改行区切り）
+          </p>
+        </div>
+
         <button class="btn btn-primary" id="coupon-create-btn">発行する</button>
         <p id="coupon-create-msg"></p>
 
-        <!-- 一括発行結果 -->
+        <!-- 発行結果 -->
         <div id="bulk-result" style="display:none; margin-top:12px;">
-          <label class="form-label">📋 発行されたコード一覧</label>
+          <label class="form-label" id="bulk-result-label">📋 発行されたコード一覧</label>
           <textarea id="bulk-codes" class="bulk-codes-box" readonly></textarea>
           <div class="bulk-actions">
-            <button class="btn btn-success btn-sm" id="copy-codes-btn">📋 全コードをコピー</button>
+            <button class="btn btn-success btn-sm" id="copy-codes-btn">📋 コードをコピー</button>
             <button class="btn btn-primary btn-sm" id="download-csv-btn">💾 CSVダウンロード</button>
             <button class="btn btn-secondary btn-sm" id="clear-bulk-btn">✖ 閉じる</button>
           </div>
@@ -317,8 +354,39 @@ document.getElementById("coupon-image-preset").addEventListener("change", (e) =>
 // 画像URL入力プレビュー
 document.getElementById("coupon-image").addEventListener("input", updateImagePreview);
 
+// 発行枚数を変えたら「発券モード」エリアの表示切替
+function syncIssueModeBox() {
+  const count = parseInt(document.getElementById("coupon-count").value, 10);
+  const box = document.getElementById("issue-mode-box");
+  if (count >= 5) {
+    box.classList.add("active");
+  } else {
+    box.classList.remove("active");
+    // 5未満に戻したら個別に戻しておく
+    const ind = document.querySelector('input[name="issue-mode"][value="individual"]');
+    if (ind) ind.checked = true;
+    updateIssueModeDesc();
+  }
+}
+document.getElementById("coupon-count").addEventListener("input", syncIssueModeBox);
+
+// モード切替時に説明文を更新
+function updateIssueModeDesc() {
+  const mode = document.querySelector('input[name="issue-mode"]:checked');
+  const desc = document.getElementById("issue-mode-desc");
+  if (!mode || !desc) return;
+  if (mode.value === "bulk") {
+    desc.innerHTML = "📦 一括: コードだけまとめてコピー（スペース区切り1行）";
+  } else {
+    desc.innerHTML = "🎟️ 個別: 1人1コードで配布する用（改行区切り）";
+  }
+}
+document.querySelectorAll('input[name="issue-mode"]').forEach(r => {
+  r.addEventListener("change", updateIssueModeDesc);
+});
+
 // 最後に発行したクーポンの情報（CSV出力用）
-let lastIssued = { name: "", prize: "", codes: [] };
+let lastIssued = { name: "", prize: "", codes: [], mode: "individual" };
 
 document.getElementById("coupon-create-btn").addEventListener("click", async () => {
   const name = document.getElementById("coupon-name").value.trim();
@@ -329,6 +397,7 @@ document.getElementById("coupon-create-btn").addEventListener("click", async () 
   const msgEl = document.getElementById("coupon-create-msg");
   const bulkResult = document.getElementById("bulk-result");
   const bulkCodesEl = document.getElementById("bulk-codes");
+  const bulkLabel = document.getElementById("bulk-result-label");
 
   if (!prize) { msgEl.innerHTML = '<span class="msg msg-error">特典名を入力</span>'; return; }
   if (!count || count < 1 || count > 100) {
@@ -336,18 +405,23 @@ document.getElementById("coupon-create-btn").addEventListener("click", async () 
     return;
   }
 
+  // 発券モード（5枚以上のときだけ意味がある）
+  const modeRadio = document.querySelector('input[name="issue-mode"]:checked');
+  const mode = (count >= 5 && modeRadio) ? modeRadio.value : "individual";
+  const modeLabel = mode === "bulk" ? "📦 一括" : "🎟️ 個別";
+
   // 確認（5枚以上のとき）
   if (count >= 5) {
-    if (!confirm(`「${name || prize}」を ${count} 枚 発行します。よろしいですか？`)) return;
+    if (!confirm(`${modeLabel} 発券で「${name || prize}」を ${count} 枚 発行します。よろしいですか？`)) return;
   }
 
   msgEl.innerHTML = `<span class="msg msg-info">${count} 枚発行中…</span>`;
   bulkResult.style.display = "none";
 
   try {
-    // 1枚なら従来API、複数枚なら一括APIを使う
     let codes = [];
     if (count === 1) {
+      // 1枚 → 従来API
       const res = await fetch(`${API_BASE}/admin/coupons`, {
         method: "POST", headers: authHeaders(),
         body: JSON.stringify({ prize, name: name || prize, image })
@@ -364,6 +438,7 @@ document.getElementById("coupon-create-btn").addEventListener("click", async () 
       }
       codes = [data.code];
     } else {
+      // 2枚以上 → 一括API
       const res = await fetch(`${API_BASE}/admin/coupons/bulk`, {
         method: "POST", headers: authHeaders(),
         body: JSON.stringify({ prize, name: name || prize, image, count })
@@ -382,16 +457,23 @@ document.getElementById("coupon-create-btn").addEventListener("click", async () 
     }
 
     // 成功
-    lastIssued = { name: name || prize, prize, codes };
-    msgEl.innerHTML = `<span class="msg msg-success">✅ ${codes.length} 枚発行完了！</span>`;
+    lastIssued = { name: name || prize, prize, codes, mode };
+    msgEl.innerHTML = `<span class="msg msg-success">✅ ${modeLabel}発券で ${codes.length} 枚発行完了！</span>`;
 
-    // 一覧表示
-    bulkCodesEl.value = codes.join("\n");
+    // 一覧表示（モードで区切り方を変える）
+    if (mode === "bulk") {
+      bulkCodesEl.value = codes.join(" ");
+      bulkLabel.innerHTML = "📦 発行されたコード（スペース区切り・1行）";
+    } else {
+      bulkCodesEl.value = codes.join("\n");
+      bulkLabel.innerHTML = "🎟️ 発行されたコード一覧（改行区切り）";
+    }
     bulkResult.style.display = "block";
     document.getElementById("copy-codes-msg").innerHTML = "";
 
-    // フォームクリア（画像系は残す。連続発行しやすいように）
+    // 発行枚数だけ1に戻す（画像系・名前は残して連続発行しやすく）
     document.getElementById("coupon-count").value = "1";
+    syncIssueModeBox();
 
     loadAdminCoupons();
   } catch (e) {
@@ -399,26 +481,26 @@ document.getElementById("coupon-create-btn").addEventListener("click", async () 
   }
 });
 
-// 📋 全コードをコピー
+// 📋 コードをコピー（mode に応じて区切り方を変える）
 document.getElementById("copy-codes-btn").addEventListener("click", async () => {
   const text = document.getElementById("bulk-codes").value;
   const msgEl = document.getElementById("copy-codes-msg");
   if (!text) { msgEl.innerHTML = '<span class="msg msg-error">コピーするコードがありません</span>'; return; }
 
   try {
-    // モダンブラウザ
     if (navigator.clipboard && window.isSecureContext) {
       await navigator.clipboard.writeText(text);
     } else {
-      // フォールバック（iOSのwebviewやhttp環境向け）
+      // iOSのwebviewやhttp環境向けフォールバック
       const ta = document.getElementById("bulk-codes");
       ta.select();
       ta.setSelectionRange(0, 99999);
       document.execCommand("copy");
       window.getSelection().removeAllRanges();
     }
-    const lines = text.split("\n").filter(Boolean).length;
-    msgEl.innerHTML = `<span class="msg msg-success">📋 ${lines} 件のコードをコピーしました！</span>`;
+    const count = lastIssued.codes.length;
+    const modeLabel = lastIssued.mode === "bulk" ? "📦 一括（スペース区切り）" : "🎟️ 個別（改行区切り）";
+    msgEl.innerHTML = `<span class="msg msg-success">📋 ${count} 件のコードをコピーしました！ ${modeLabel}</span>`;
   } catch (e) {
     msgEl.innerHTML = `<span class="msg msg-error">コピー失敗: ${esc(e.message)}（テキストを長押し→コピーしてください）</span>`;
   }
@@ -427,9 +509,9 @@ document.getElementById("copy-codes-btn").addEventListener("click", async () => 
 // 💾 CSVダウンロード
 document.getElementById("download-csv-btn").addEventListener("click", () => {
   if (!lastIssued.codes.length) return;
-  const header = "code,name,prize\n";
+  const header = "code,name,prize,mode\n";
   const rows = lastIssued.codes.map(c =>
-    `${c},"${(lastIssued.name || "").replace(/"/g, '""')}","${(lastIssued.prize || "").replace(/"/g, '""')}"`
+    `${c},"${(lastIssued.name || "").replace(/"/g, '""')}","${(lastIssued.prize || "").replace(/"/g, '""')}",${lastIssued.mode}`
   ).join("\n");
   // Excelで開いたとき文字化けしないようBOM付き
   const blob = new Blob(["\uFEFF" + header + rows], { type: "text/csv;charset=utf-8;" });
@@ -449,7 +531,7 @@ document.getElementById("clear-bulk-btn").addEventListener("click", () => {
   document.getElementById("bulk-result").style.display = "none";
   document.getElementById("bulk-codes").value = "";
   document.getElementById("copy-codes-msg").innerHTML = "";
-  lastIssued = { name: "", prize: "", codes: [] };
+  lastIssued = { name: "", prize: "", codes: [], mode: "individual" };
 });
 
 async function loadAdminCoupons() {
