@@ -50,9 +50,12 @@ workflows:
       - name: Set version and build number
         script: |
           cd $CM_BUILD_DIR/ios/App
-          sed -i '' 's/CURRENT_PROJECT_VERSION = [^;]*/CURRENT_PROJECT_VERSION = 32/' App.xcodeproj/project.pbxproj
+          # App Store Connect から最新の Build Number を取得して +1
+          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID" || echo "32")
+          NEW_BUILD_NUMBER=$(($LATEST_BUILD_NUMBER + 1))
+          sed -i '' "s/CURRENT_PROJECT_VERSION = [^;]*/CURRENT_PROJECT_VERSION = $NEW_BUILD_NUMBER/" App.xcodeproj/project.pbxproj
           sed -i '' 's/MARKETING_VERSION = [^;]*/MARKETING_VERSION = 1.3.1/' App.xcodeproj/project.pbxproj
-          echo "Set CURRENT_PROJECT_VERSION=32, MARKETING_VERSION=1.3.1"
+          echo "Set CURRENT_PROJECT_VERSION=$NEW_BUILD_NUMBER, MARKETING_VERSION=1.3.1"
       - name: Build ipa for distribution
         script: |
           cd $CM_BUILD_DIR/ios/App
