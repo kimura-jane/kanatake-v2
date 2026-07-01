@@ -543,14 +543,52 @@ async function loadNotices() {
   }
 }
 
+// ★★★ お知らせ本文レンダリング（X埋め込み維持＋URL自動リンク化） ★★★
 function renderNoticeBody(text) {
   if (!text) return "";
   const escaped = escapeHtml(text);
+
+  // ① まずXツイートURLを検出してプレースホルダに退避（<a>化されないように）
+  const tweetPlaceholders = [];
   const xRegex = /https?:\/\/(x\.com|twitter\.com)\/\w+\/status\/(\d+)[^\s]*/g;
-  return escaped.replace(xRegex, (url) => {
-    return `<div class="notice-embed"><blockquote class="twitter-tweet"><a href="${url}"></a></blockquote></div>`;
+  let step1 = escaped.replace(xRegex, (url) => {
+    const idx = tweetPlaceholders.length;
+    tweetPlaceholders.push(`<div class="notice-embed"><blockquote class="twitter-tweet"><a href="${url}"></a></blockquote></div>`);
+    return `\u0000TWEET${idx}\u0000`;
   });
+
+  // ② それ以外の URL をリンク化（末尾の句読点はリンク対象外）
+  const urlRegex = /(https?:\/\/[^\s<>"']+)/g;
+  let step2 = step1.replace(urlRegex, (url) => {
+    const trailing = url.match(/[。、.,\)\]!?]+$/);
+    let cleanUrl = url;
+    let tail = "";
+    if (trailing) {
+      cleanUrl = url.slice(0, -trailing[0].length);
+      tail = trailing[0];
+    }
+    return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" class="notice-link">${cleanUrl}</a>${tail}`;
+  });
+
+  // ③ プレースホルダをツイート埋め込みに戻す
+  return step2.replace(/\u0000TWEET(\d+)\u0000/g, (_, i) => tweetPlaceholders[Number(i)]);
 }
+
+// ★★★ お知らせ内リンクのタップ処理（ネイティブアプリでは外部ブラウザで開く） ★★★
+document.addEventListener("click", (e) => {
+  const a = e.target.closest("a.notice-link");
+  if (!a) return;
+  const url = a.getAttribute("href");
+  if (!url) return;
+  if (!isNativeApp()) return; // Web ではデフォルト動作
+  e.preventDefault();
+  const Browser = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Browser;
+  if (Browser && Browser.open) {
+    Browser.open({ url: url });
+  } else {
+    window.open(url, "_system");
+  }
+});
 
 function loadTwitterWidget() {
   if (window.twttr) { window.twttr.widgets.load(); return; }
@@ -1411,91 +1449,4 @@ async function doPushRegister() {
       return;
     }
 
-    var sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: b64ToUint8Array(vapidKey)
-    });
-
-    var hour = document.querySelector('input[name="notifyHour"]:checked');
-    var hourVal = hour ? parseInt(hour.value) : 21;
-
-    var placeMode = (document.querySelector('input[name="placeMode"]:checked') || {}).value || "all";
-    var places;
-    if (placeMode === "all") {
-      places = [];
-    } else {
-      places = [...document.querySelectorAll(".placeChk:checked")].map(function(x) { return x.value; });
-      if (places.length === 0) {
-        statusEl.className = "result-text error";
-        statusEl.textContent = "❌ 通知する場所を1つ以上選んでください";
-        return;
-      }
-    }
-
-    await upsertSubscription(sub, hourVal, places);
-
-    statusEl.className = "result-text success";
-    statusEl.textContent = "✅ 通知設定を保存しました！";
-  } catch (e) {
-    console.warn("push register error:", e);
-    statusEl.className = "result-text error";
-    statusEl.textContent = "❌ 通知の登録に失敗しました";
-  }
-}
-
-// ===== Push ユーティリティ =====
-function b64ToUint8Array(base64String) {
-  const padding = "=".repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const rawData = atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
-  return outputArray;
-}
-
-async function getVapidPublicKey() {
-  try {
-    const res = await fetch(`${PUSH_API_BASE}/vapid`);
-    const data = await res.json();
-    return data.publicKey || null;
-  } catch (e) { return null; }
-}
-
-async function upsertSubscription(sub, hour, places) {
-  await fetch(`${PUSH_API_BASE}/subs/upsert`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      device_id: DEVICE_ID,
-      subscription: sub.toJSON(),
-      hour: hour,
-      places: places
-    })
-  });
-}
-
-async function registerSW() {
-  if ("serviceWorker" in navigator) {
-    await navigator.serviceWorker.register("sw.js");
-  }
-
-  var pushBtn = document.getElementById("pushBtn");
-  if (pushBtn && !isNativeApp()) {
-    pushBtn.addEventListener("click", doPushRegister);
-  }
-}
-
-// ===== ユーティリティ =====
-function escapeHtml(str) {
-  const d = document.createElement("div");
-  d.textContent = str || "";
-  return d.innerHTML;
-}
-
-function formatDate(str) {
-  if (!str) return "";
-  try {
-    const d = new Date(str);
-    return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
-  } catch (e) { return str; }
-}
+    var sub = await reg.pushManager.sub
