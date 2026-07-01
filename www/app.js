@@ -1449,4 +1449,91 @@ async function doPushRegister() {
       return;
     }
 
-    var sub = await reg.pushManager.sub
+    var sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: b64ToUint8Array(vapidKey)
+    });
+
+    var hour = document.querySelector('input[name="notifyHour"]:checked');
+    var hourVal = hour ? parseInt(hour.value) : 21;
+
+    var placeMode = (document.querySelector('input[name="placeMode"]:checked') || {}).value || "all";
+    var places;
+    if (placeMode === "all") {
+      places = [];
+    } else {
+      places = [...document.querySelectorAll(".placeChk:checked")].map(function(x) { return x.value; });
+      if (places.length === 0) {
+        statusEl.className = "result-text error";
+        statusEl.textContent = "❌ 通知する場所を1つ以上選んでください";
+        return;
+      }
+    }
+
+    await upsertSubscription(sub, hourVal, places);
+
+    statusEl.className = "result-text success";
+    statusEl.textContent = "✅ 通知設定を保存しました！";
+  } catch (e) {
+    console.warn("push register error:", e);
+    statusEl.className = "result-text error";
+    statusEl.textContent = "❌ 通知の登録に失敗しました";
+  }
+}
+
+// ===== Push ユーティリティ =====
+function b64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+async function getVapidPublicKey() {
+  try {
+    const res = await fetch(`${PUSH_API_BASE}/vapid`);
+    const data = await res.json();
+    return data.publicKey || null;
+  } catch (e) { return null; }
+}
+
+async function upsertSubscription(sub, hour, places) {
+  await fetch(`${PUSH_API_BASE}/subs/upsert`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      device_id: DEVICE_ID,
+      subscription: sub.toJSON(),
+      hour: hour,
+      places: places
+    })
+  });
+}
+
+async function registerSW() {
+  if ("serviceWorker" in navigator) {
+    await navigator.serviceWorker.register("sw.js");
+  }
+
+  var pushBtn = document.getElementById("pushBtn");
+  if (pushBtn && !isNativeApp()) {
+    pushBtn.addEventListener("click", doPushRegister);
+  }
+}
+
+// ===== ユーティリティ =====
+function escapeHtml(str) {
+  const d = document.createElement("div");
+  d.textContent = str || "";
+  return d.innerHTML;
+}
+
+function formatDate(str) {
+  if (!str) return "";
+  try {
+    const d = new Date(str);
+    return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+  } catch (e) { return str; }
+}
