@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -7,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="sales-admin.css">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: "Kosugi Maru", sans-serif; background: #f5f5f5; color: #333; padding: 16px; }
@@ -24,7 +26,6 @@
     input, textarea, select { width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-family: inherit; font-size: 13px; margin-bottom: 8px; background: white; }
     textarea { min-height: 80px; resize: vertical; }
     .login-area { text-align: center; padding: 40px 0; }
-    .login-area input { max-width: 300px; }
     .item { padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
     .item:last-child { border-bottom: none; }
     .item-meta { font-size: 11px; color: #999; }
@@ -52,20 +53,15 @@
     .form-label { font-size: 12px; color: #666; font-weight: 700; margin: 4px 0 4px; display: block; }
     .bulk-codes-box {
       width: 100%; min-height: 180px; padding: 10px;
-      border: 2px solid #f5a623; border-radius: 8px;
+      border: 2px solid #f5a623;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size: 13px; background: #fffdf6; resize: vertical;
     }
     .bulk-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
-
-    /* 発券モード選択 */
     .issue-mode-box {
-      display: none;
-      background: #fff9e6;
+      display: none; background: #fff9e6;
       border: 2px dashed #f5a623;
-      border-radius: 8px;
-      padding: 10px;
-      margin-bottom: 8px;
+      border-radius: 8px; padding: 10px; margin-bottom: 8px;
     }
     .issue-mode-box.active { display: block; }
     .issue-mode-radios { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 6px; }
@@ -90,13 +86,14 @@
     <p id="login-msg"></p>
   </div>
 
-  <!-- 管理コンテンツ -->
   <div id="admin-content">
     <div class="tabs">
       <button class="tab-btn active" data-tab="reviews">💬 口コミ</button>
       <button class="tab-btn" data-tab="coupons">🎫 クーポン</button>
       <button class="tab-btn" data-tab="notices">📢 お知らせ</button>
       <button class="tab-btn" data-tab="locations">📍 出店場所</button>
+      <button class="tab-btn" data-tab="products">商品管理</button>
+      <button class="tab-btn" data-tab="sales">販売状況</button>
       <button class="tab-btn" data-tab="points">⭐ ポイント</button>
     </div>
 
@@ -111,10 +108,8 @@
     <div class="tab-content" id="tab-coupons">
       <div class="card">
         <h2>クーポン発行</h2>
-
         <input type="text" id="coupon-name" placeholder="クーポン名（例: 春の感謝クーポン）">
         <input type="text" id="coupon-prize" placeholder="特典名（例: おにぎり1個無料）">
-
         <label class="form-label">🖼 画像プリセット</label>
         <select id="coupon-image-preset">
           <option value="">-- 画像を選択 --</option>
@@ -125,14 +120,10 @@
           <option value="https://raw.githubusercontent.com/kimura-jane/kanatake-v2/main/gazo/IMG_6393.jpeg">🎬 プペル鑑賞券</option>
           <option value="__custom__">✏️ カスタム入力</option>
         </select>
-
         <input type="text" id="coupon-image" placeholder="画像URL（例: https://...jpg）任意">
         <div id="coupon-image-preview" style="margin-bottom:8px;"></div>
-
         <label class="form-label">🔢 発行枚数（1〜100）</label>
         <input type="number" id="coupon-count" min="1" max="100" value="1">
-
-        <!-- 5枚以上のとき表示する発券モード -->
         <div id="issue-mode-box" class="issue-mode-box">
           <label class="form-label" style="margin:0;">📦 発券モード（5枚以上）</label>
           <div class="issue-mode-radios">
@@ -149,11 +140,8 @@
             🎟️ 個別: 1人1コードで配布する用（改行区切り）
           </p>
         </div>
-
         <button class="btn btn-primary" id="coupon-create-btn">発行する</button>
         <p id="coupon-create-msg"></p>
-
-        <!-- 発行結果 -->
         <div id="bulk-result" style="display:none; margin-top:12px;">
           <label class="form-label" id="bulk-result-label">📋 発行されたコード一覧</label>
           <textarea id="bulk-codes" class="bulk-codes-box" readonly></textarea>
@@ -198,6 +186,110 @@
       <div class="card" id="locations-list-container">
         <h2>登録済み出店場所</h2>
         <p>読み込み中…</p>
+      </div>
+    </div>
+
+    <!-- 商品管理 -->
+    <div class="tab-content" id="tab-products">
+      <div class="card">
+        <h2 id="sale-product-form-title">商品を追加</h2>
+
+        <label class="form-label" for="sale-p-category">カテゴリー</label>
+        <select id="sale-p-category">
+          <option value="onigiri">おにぎり</option>
+          <option value="bento">お弁当</option>
+          <option value="other">その他</option>
+        </select>
+
+        <label class="form-label" for="sale-p-name">商品名</label>
+        <input id="sale-p-name" maxlength="100" placeholder="商品名">
+
+        <label class="form-label" for="sale-p-price">販売価格（円）</label>
+        <input id="sale-p-price" type="number" min="0" max="1000000" step="1" placeholder="価格未設定でも登録できます">
+
+        <label class="form-label" for="sale-p-photo">商品画像</label>
+        <input id="sale-p-photo" type="file" accept="image/*">
+        <div id="sale-photo-preview" aria-live="polite"></div>
+        <p class="sales-note">既存商品の写真と価格も編集できます。写真を選択しない場合、現在の画像はそのまま残ります。</p>
+
+        <label class="sales-tick">
+          <input id="sale-p-limited" type="checkbox">
+          期間限定商品
+        </label>
+
+        <div class="sales-form-grid" id="sale-p-period">
+          <div>
+            <label class="form-label" for="sale-p-from">販売開始日</label>
+            <input id="sale-p-from" type="date">
+          </div>
+          <div>
+            <label class="form-label" for="sale-p-until">販売終了日</label>
+            <input id="sale-p-until" type="date">
+          </div>
+        </div>
+
+        <p class="sales-note">
+          販売期間中は毎日選択できます。期間終了後も商品情報は残り、再利用できます。
+        </p>
+
+        <label class="sales-tick">
+          <input id="sale-p-active" type="checkbox" checked>
+          商品一覧に表示
+        </label>
+
+        <button class="btn btn-primary" id="sale-p-save">商品を保存</button>
+        <button class="btn btn-secondary" id="sale-p-cancel" hidden>キャンセル</button>
+        <p class="sales-message" id="sale-p-message"></p>
+        <p class="sales-note">商品を登録しただけでは、本日の販売は開始しません。</p>
+      </div>
+      <div class="card">
+        <h2>登録商品</h2>
+        <div id="sale-products-list"></div>
+      </div>
+    </div>
+
+    <!-- 本日の販売状況 -->
+    <div class="tab-content" id="tab-sales">
+      <div class="card">
+        <h2>本日の販売状況</h2>
+        <strong id="sales-date"></strong>
+        ／
+        <strong id="sales-phase">準備中</strong>
+
+        <p class="sales-note" id="sales-closed" hidden>
+          本日の表示は22時に自動終了します。
+        </p>
+
+        <h2>朝の準備・販売商品の選択</h2>
+        <div id="sales-select-list"></div>
+
+        <label class="sales-tick">
+          <input id="sales-story" type="checkbox" checked>
+          ストーリーにも反映
+        </label>
+
+        <div class="sales-actions">
+          <button class="btn btn-secondary" id="sales-update-list">
+            選択・設定を反映
+          </button>
+          <button class="btn btn-primary" id="sales-start">
+            本日の販売状況を配信する
+          </button>
+          <button class="btn btn-danger" id="sales-pause" hidden>中止</button>
+          <button class="btn btn-success" id="sales-resume" hidden>戻る・再開</button>
+          <button class="btn btn-secondary" id="sales-end" hidden>営業終了</button>
+        </div>
+        <p class="sales-message" id="sales-message"></p>
+      </div>
+
+      <div class="card">
+        <h2>営業中の商品別ステータス</h2>
+        <div id="sales-status-list"></div>
+      </div>
+
+      <div class="card">
+        <h2>現在の画像</h2>
+        <div id="sales-board-preview"></div>
       </div>
     </div>
 
@@ -330,8 +422,6 @@ async function deleteReview(id) {
 }
 
 // ===== クーポン管理 =====
-
-// 画像プリセット選択
 document.getElementById("coupon-image-preset").addEventListener("change", (e) => {
   const val = e.target.value;
   const imageInput = document.getElementById("coupon-image");
@@ -351,10 +441,8 @@ document.getElementById("coupon-image-preset").addEventListener("change", (e) =>
   updateImagePreview();
 });
 
-// 画像URL入力プレビュー
 document.getElementById("coupon-image").addEventListener("input", updateImagePreview);
 
-// 発行枚数を変えたら「発券モード」エリアの表示切替
 function syncIssueModeBox() {
   const count = parseInt(document.getElementById("coupon-count").value, 10);
   const box = document.getElementById("issue-mode-box");
@@ -362,7 +450,6 @@ function syncIssueModeBox() {
     box.classList.add("active");
   } else {
     box.classList.remove("active");
-    // 5未満に戻したら個別に戻しておく
     const ind = document.querySelector('input[name="issue-mode"][value="individual"]');
     if (ind) ind.checked = true;
     updateIssueModeDesc();
@@ -370,7 +457,6 @@ function syncIssueModeBox() {
 }
 document.getElementById("coupon-count").addEventListener("input", syncIssueModeBox);
 
-// モード切替時に説明文を更新
 function updateIssueModeDesc() {
   const mode = document.querySelector('input[name="issue-mode"]:checked');
   const desc = document.getElementById("issue-mode-desc");
@@ -385,7 +471,6 @@ document.querySelectorAll('input[name="issue-mode"]').forEach(r => {
   r.addEventListener("change", updateIssueModeDesc);
 });
 
-// 最後に発行したクーポンの情報（CSV出力用）
 let lastIssued = { name: "", prize: "", codes: [], mode: "individual" };
 
 document.getElementById("coupon-create-btn").addEventListener("click", async () => {
@@ -405,12 +490,10 @@ document.getElementById("coupon-create-btn").addEventListener("click", async () 
     return;
   }
 
-  // 発券モード（5枚以上のときだけ意味がある）
   const modeRadio = document.querySelector('input[name="issue-mode"]:checked');
   const mode = (count >= 5 && modeRadio) ? modeRadio.value : "individual";
   const modeLabel = mode === "bulk" ? "📦 一括" : "🎟️ 個別";
 
-  // 確認（5枚以上のとき）
   if (count >= 5) {
     if (!confirm(`${modeLabel} 発券で「${name || prize}」を ${count} 枚 発行します。よろしいですか？`)) return;
   }
@@ -421,7 +504,6 @@ document.getElementById("coupon-create-btn").addEventListener("click", async () 
   try {
     let codes = [];
     if (count === 1) {
-      // 1枚 → 従来API
       const res = await fetch(`${API_BASE}/admin/coupons`, {
         method: "POST", headers: authHeaders(),
         body: JSON.stringify({ prize, name: name || prize, image })
@@ -438,7 +520,6 @@ document.getElementById("coupon-create-btn").addEventListener("click", async () 
       }
       codes = [data.code];
     } else {
-      // 2枚以上 → 一括API
       const res = await fetch(`${API_BASE}/admin/coupons/bulk`, {
         method: "POST", headers: authHeaders(),
         body: JSON.stringify({ prize, name: name || prize, image, count })
@@ -456,11 +537,9 @@ document.getElementById("coupon-create-btn").addEventListener("click", async () 
       codes = data.codes || [];
     }
 
-    // 成功
     lastIssued = { name: name || prize, prize, codes, mode };
     msgEl.innerHTML = `<span class="msg msg-success">✅ ${modeLabel}発券で ${codes.length} 枚発行完了！</span>`;
 
-    // 一覧表示（モードで区切り方を変える）
     if (mode === "bulk") {
       bulkCodesEl.value = codes.join(" ");
       bulkLabel.innerHTML = "📦 発行されたコード（スペース区切り・1行）";
@@ -470,18 +549,14 @@ document.getElementById("coupon-create-btn").addEventListener("click", async () 
     }
     bulkResult.style.display = "block";
     document.getElementById("copy-codes-msg").innerHTML = "";
-
-    // 発行枚数だけ1に戻す（画像系・名前は残して連続発行しやすく）
     document.getElementById("coupon-count").value = "1";
     syncIssueModeBox();
-
     loadAdminCoupons();
   } catch (e) {
     msgEl.innerHTML = `<span class="msg msg-error">通信エラー: ${esc(e.message)}</span>`;
   }
 });
 
-// 📋 コードをコピー（mode に応じて区切り方を変える）
 document.getElementById("copy-codes-btn").addEventListener("click", async () => {
   const text = document.getElementById("bulk-codes").value;
   const msgEl = document.getElementById("copy-codes-msg");
@@ -491,7 +566,6 @@ document.getElementById("copy-codes-btn").addEventListener("click", async () => 
     if (navigator.clipboard && window.isSecureContext) {
       await navigator.clipboard.writeText(text);
     } else {
-      // iOSのwebviewやhttp環境向けフォールバック
       const ta = document.getElementById("bulk-codes");
       ta.select();
       ta.setSelectionRange(0, 99999);
@@ -506,14 +580,12 @@ document.getElementById("copy-codes-btn").addEventListener("click", async () => 
   }
 });
 
-// 💾 CSVダウンロード
 document.getElementById("download-csv-btn").addEventListener("click", () => {
   if (!lastIssued.codes.length) return;
   const header = "code,name,prize,mode\n";
   const rows = lastIssued.codes.map(c =>
     `${c},"${(lastIssued.name || "").replace(/"/g, '""')}","${(lastIssued.prize || "").replace(/"/g, '""')}",${lastIssued.mode}`
   ).join("\n");
-  // Excelで開いたとき文字化けしないようBOM付き
   const blob = new Blob(["\uFEFF" + header + rows], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
@@ -526,7 +598,6 @@ document.getElementById("download-csv-btn").addEventListener("click", () => {
   URL.revokeObjectURL(url);
 });
 
-// ✖ 閉じる
 document.getElementById("clear-bulk-btn").addEventListener("click", () => {
   document.getElementById("bulk-result").style.display = "none";
   document.getElementById("bulk-codes").value = "";
@@ -701,5 +772,7 @@ document.getElementById("add-points-btn").addEventListener("click", async () => 
   }
 });
 </script>
+<script src="sales-config.js"></script>
+<script src="sales-admin.js"></script>
 </body>
 </html>
