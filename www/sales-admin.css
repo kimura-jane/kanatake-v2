@@ -1,0 +1,26 @@
+#tab-products .form-label,#tab-sales .form-label { margin-top:10px; }
+.sales-note {font-size:12px;color:#686868;line-height:1.6;margin:8px 0}
+.sales-form-grid {display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sales-form-grid input,.sales-form-grid select{margin-bottom:2px}
+.sales-tick {display:flex;align-items:center;gap:7px;font-size:13px;margin:10px 0}
+.sales-tick input {width:18px;height:18px;margin:0}
+.sales-product {display:flex;gap:10px;align-items:center;border-bottom:1px solid #eee;padding:10px 0}
+.sales-product img {width:54px;height:54px;object-fit:cover;border-radius:6px;background:#eee}
+.sales-product-details {flex:1;min-width:0;font-size:13px;overflow-wrap:anywhere}
+.sales-product-details small{color:#777;display:block;margin-top:4px}
+.sales-actions {display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.sales-actions .btn{min-height:36px}
+.sales-list-group{font-size:14px;border-bottom:1px solid #eee;padding:10px 0 5px;margin:12px 0 0}
+.sales-pick{display:flex;align-items:center;gap:10px;border-bottom:1px solid #eee;padding:10px 0;font-size:13px}
+.sales-pick input{width:20px;height:20px;flex-shrink:0;margin:0}
+.sales-pick span{flex:1}
+.sales-current{padding:12px 0;border-bottom:1px solid #eee}
+.sales-current .sales-actions .btn.is-active{outline:3px solid #444}
+#sales-board-preview img{width:100%;max-width:240px;max-height:420px;object-fit:contain;background:#fff}
+.sales-message{font-size:13px;margin:8px 0;white-space:pre-wrap}
+@media(max-width:370px){.sales-form-grid{grid-template-columns:1fr}}
+
+/* Current/selected photo preview when editing both existing and new products. */
+#sale-photo-preview {display:flex;align-items:center;gap:12px;margin:8px 0 12px;min-height:58px;font-size:12px;color:#555;line-height:1.5}
+#sale-photo-preview img {width:88px;height:88px;object-fit:contain;border-radius:8px;border:1px solid #ddd;background:#f7f7f7;flex:none}
+#sale-photo-preview span {flex:1}
