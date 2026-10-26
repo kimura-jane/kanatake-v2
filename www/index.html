@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -19,7 +20,7 @@
   <meta property="og:locale" content="ja_JP">
 
   <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:card" content="summary_large">
   <meta name="twitter:title" content="おにぎり屋かなたけ">
   <meta name="twitter:description" content="出店スケジュール・クーポン・口コミが見られるおにぎり屋かなたけ公式アプリ">
   <meta name="twitter:image" content="https://kimura-jane.github.io/kanatae-app/icon.png">
@@ -33,10 +34,10 @@
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
-
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
 
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="sales-board.css">
 </head>
 <body>
 
@@ -53,6 +54,14 @@
 
     <!-- ===== ホーム ===== -->
     <section class="page active" id="page-home">
+
+      <!-- 本日のメニュー -->
+      <div class="section-card" id="sales-board-section">
+        <h2 class="section-title">本日のメニュー</h2>
+        <img id="sales-board-image" alt="本日の販売状況">
+        <p class="sales-updated" id="sales-board-updated"></p>
+      </div>
+
       <div class="section-card" id="notices-area">
         <h2 class="section-title">📢 お知らせ</h2>
         <div id="notices-list" class="notices-list">
@@ -96,15 +105,14 @@
         <h2 class="section-title">💎 おにぎり屋かなたけ応援コミュニティ</h2>
         <p class="financie-lead">FiNANCiEというサービス内にある「おにぎり屋かなたけ」を応援するコミュニティに参加しませんか？</p>
         <p class="financie-desc">活動のお知らせ・限定投稿が見られます。定期的にリワード（抽選会）でアプリで使えるクーポンも当たるのでチェックしてね 🎁</p>
+        <a href="https://financie.jp/users/onigiriyakanatake" target="_blank" rel="noopener" class="btn btn-financie btn-full">💎 コミュニティを開く</a>
         <div class="financie-code-box">
           <span class="financie-code-label">🎁 招待コード</span>
           <span class="financie-code" id="financie-code">ET39M2</span>
           <button class="financie-copy-btn" id="financie-copy-btn" type="button">📋 コピー</button>
         </div>
-        <p class="financie-bonus">このコードを使って登録すると <strong>1トークンプレゼント</strong> 🎉<br>さらに運営からも追加でトークンをお渡しします。<br>トークンは売買もできますが、参加してくれるだけで嬉しいです！ぜひ感想や応援メッセージを書き込んでね 💬</p>
-        <a href="https://financie.jp/users/onigiriyakanatake" target="_blank" rel="noopener" class="btn btn-financie btn-full">💎 コミュニティを開く</a>
+        <p class="financie-bonus">このコードを使って登録すると <strong>1トークンプレゼント</strong> 🎉<br>さらに運営からも追加でトークンをお渡しします。<br>トークンは売買もできますが、参加してくれるだけでも嬉しいです！ぜひ感想や応援メッセージを書き込んでね 💬</p>
         <p class="financie-note">※ブラウザからその場で会員登録できます。アプリは後からのダウンロードでOK！</p>
-        <p id="financie-copy-result" class="result-text"></p>
       </div>
     </section>
 
@@ -484,5 +492,7 @@
 </script>
 
 <script src="app.js"></script>
+<script src="sales-config.js"></script>
+<script src="sales-board.js"></script>
 </body>
 </html>
