@@ -1,0 +1,114 @@
+
+{
+  "note": "切り出し範囲は元画像のピクセル座標 [x, y, width, height]。make_board.py がこの範囲を取り出し、カードの写真枠（4:3）に cover-fit する。",
+  "source_base": "https://raw.githubusercontent.com/kimura-jane/kanatake-v2/main/gazo/",
+  "items": {
+    "komatsuna_salmon_cheese": {
+      "file": "IMG_5220.jpeg",
+      "crop": [205, 244, 898, 853],
+      "how": "商品カード内の写真全体。左上端の受賞リボン（帯＋垂れ下がる尾）は写真の白背景とおにぎりの縁にかかる装飾のため、whiteout範囲（2か所）を白で消してから使用",
+      "whiteout": [
+        [
+          [205, 244],
+          [448, 244],
+          [448, 330],
+          [393, 394],
+          [401, 436],
+          [375, 470],
+          [372, 540],
+          [310, 575],
+          [205, 545]
+        ],
+        [
+          [418, 380],
+          [440, 380],
+          [440, 408],
+          [418, 408]
+        ],
+        [
+          [376, 345],
+          [404, 345],
+          [404, 373],
+          [376, 373]
+        ]
+      ]
+    },
+    "yamawasabi_cream_cheese": {
+      "file": "IMG_5221.jpeg",
+      "crop": [108, 90, 897, 854],
+      "how": "同上"
+    },
+    "double_konbu": {
+      "file": "IMG_5222.jpeg",
+      "crop": [107, 100, 965, 920],
+      "how": "同上"
+    },
+    "ume_kinpira_gobo": {
+      "file": "IMG_5223.jpeg",
+      "crop": [97, 89, 939, 891],
+      "how": "同上"
+    },
+    "ooba_miso": {
+      "file": "IMG_5224.jpeg",
+      "crop": [78, 88, 937, 892],
+      "how": "同上"
+    },
+    "jagaimo_curry_soboro": {
+      "file": "IMG_5226.jpeg",
+      "crop": [83, 98, 939, 889],
+      "how": "同上"
+    },
+    "aji_fry_noriben": {
+      "file": "IMG_8610.jpeg",
+      "crop": [125, 246, 523, 274],
+      "how": "ポスター（IMG_8610）左のトレー全体。右の商品名テキストは含めない"
+    },
+    "ebi_fry_noriben": {
+      "file": "IMG_8610.jpeg",
+      "crop": [128, 528, 520, 244],
+      "how": "ポスター中段のトレー全体"
+    },
+    "karaage_noriben": {
+      "file": "IMG_8610.jpeg",
+      "crop": [148, 778, 500, 292],
+      "how": "ポスター下段のトレー全体（下部の取っ手部分も含む）"
+    },
+    "shacho_noriben": {
+      "file": "IMG_8620.jpeg",
+      "crop": [130, 240, 1000, 640],
+      "how": "アジフライ全体が入る範囲に拡大。広告の文字が一部入る（縄文の了承済み仕様）"
+    },
+    "tonjiru": {
+      "file": "IMG_5231.jpeg",
+      "crop": [185, 55, 790, 688],
+      "how": "お椀全体。下部の広告文は含めない"
+    },
+    "genmai_dango": {
+      "file": "IMG_5228.jpeg",
+      "crop": [80, 535, 1085, 660],
+      "how": "お皿全体が入る範囲。上下の広告文は含めない"
+    },
+    "munekara": {
+      "file": "IMG_5229.jpeg",
+      "crop": [280, 100, 470, 520],
+      "how": "広告画像から唐揚げの盛り付け部分のみ。両脇の縦書き文字・価格は含めない"
+    },
+    "pori_chabin": {
+      "file": "IMG_5230.jpeg",
+      "crop": [655, 315, 200, 410],
+      "how": "広告画像から茶瓶本体（吊りひも含む）。周囲の文字は含めない"
+    },
+    "gentei_onigiri": {
+      "placeholder": true,
+      "aspect": 0.95,
+      "label": "写真準備中",
+      "how": "限定商品の仮写真（実写真が用意できたら差し替える）"
+    },
+    "megami_no_hohoemi": {
+      "placeholder": true,
+      "aspect": 0.75,
+      "label": "写真準備中",
+      "how": "写真がないため仮写真（実写真が用意できたら差し替える）"
+    }
+  }
+}
