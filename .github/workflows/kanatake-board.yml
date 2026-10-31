@@ -1,0 +1,118 @@
+
+name: kanatake-board
+
+# 最初は手動実行のみ。
+# Worker連携後はworkflow_dispatchで自動起動する。
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "check=環境確認 / generate=画像生成・登録"
+        required: true
+        type: choice
+        options:
+          - check
+          - generate
+        default: check
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kanatake-board
+  cancel-in-progress: false
+
+jobs:
+  board:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Install fonts and dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends fonts-noto-cjk
+
+          python -m pip install \
+            --disable-pip-version-check \
+            --only-binary=:all: \
+            "Pillow==13.0.0" \
+            "requests==2.34.2"
+
+          python -m pip check
+
+      - name: Verify environment and files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f board/watcher.py
+          test -f board/adapter.py
+          test -f board/make_board.py
+          test -f board/crops.json
+          test -f board/id_mapping.json
+
+          FONT=/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc
+          test -f "$FONT"
+          sha256sum "$FONT"
+
+          python - <<'PY'
+          import ast
+          import json
+          import platform
+          from pathlib import Path
+          import PIL
+          import requests
+
+          base = Path("board")
+
+          for name in (
+              "watcher.py",
+              "adapter.py",
+              "make_board.py",
+          ):
+              ast.parse(
+                  (base / name).read_text(encoding="utf-8")
+              )
+
+          for name in (
+              "crops.json",
+              "id_mapping.json",
+          ):
+              json.loads(
+                  (base / name).read_text(encoding="utf-8")
+              )
+
+          print("Python:", platform.python_version())
+          print("Pillow:", PIL.__version__)
+          print("requests:", requests.__version__)
+          print("Source verification: OK")
+          PY
+
+      - name: Generate board if needed
+        if: ${{ inputs.mode == 'generate' }}
+        working-directory: board
+        shell: bash
+        env:
+          KANATAKE_SALES_API_BASE: ${{ vars.KANATAKE_SALES_API_BASE }}
+          KANATAKE_MUSE_TOKEN: ${{ secrets.KANATAKE_MUSE_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          test -n "$KANATAKE_SALES_API_BASE"
+          test -n "$KANATAKE_MUSE_TOKEN"
+
+          python watcher.py --once
