@@ -1,15 +1,16 @@
 
 name: kanatake-board
 
-# 手動実行のみ。
 # check: 環境・認証確認
-# preview: 画像を生成してArtifactsに保存。公開しない
-# generate: 画像を生成してWorkerに登録
+# preview: 画像を生成してArtifactsに保存（公開しない）
+# generate: 画像を生成してWorkerへ登録
+# 自動実行はまだ有効にしない
+
 on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "check=認証確認 / preview=非公開生成 / generate=Worker登録"
+        description: "check=認証確認 / preview=非公開画像生成 / generate=Worker登録"
         required: true
         type: choice
         options:
@@ -141,8 +142,9 @@ jobs:
 
           echo "Worker authentication OK (HTTP 200)"
 
-      # preview: データ取得と画像生成のみ
-      # PUT /muse/board は呼び出さない
+      # preview: 非公開画像生成
+      # 当日の選択商品が0件の場合は商品マスタからテスト用データを構成
+      # GETのみ使用。PUTやPOSTは一切行わない。
       - name: Generate preview image (no publishing)
         if: ${{ inputs.mode == 'preview' }}
         working-directory: board
@@ -168,19 +170,117 @@ jobs:
           )
 
           today = client.get_today()
-          items = today.get("items", [])
+          items = today.get("items")
 
           print("Day:", today.get("day"))
           print("Phase:", today.get("phase"))
           print("Version:", today.get("version"))
-          print("Items:", len(items))
 
-          if not isinstance(items, list) or not 1 <= len(items) <= 16:
-              raise SystemExit(
-                  "Preview requires 1 to 16 selected products"
+          if not isinstance(items, list):
+              raise SystemExit("Invalid items response")
+
+          print("Selected items:", len(items))
+
+          if len(items) == 0:
+              print("No selected products. Using sample lineup.")
+
+              products = today.get("products")
+
+              if not isinstance(products, list):
+                  raise SystemExit(
+                      "Product catalog is unavailable"
+                  )
+
+              catalog = {
+                  p["id"]: p
+                  for p in products
+                  if (
+                      isinstance(p, dict)
+                      and isinstance(p.get("id"), str)
+                      and p.get("is_active") is True
+                      and p.get("category") in (
+                          "onigiri",
+                          "bento",
+                          "other"
+                      )
+                      and isinstance(p.get("name"), str)
+                      and p["name"].strip()
+                  )
+              }
+
+              # 既存の商品IDを優先して使用する
+              preferred_ids = [
+                  "onigiri_komatsuna",
+                  "onigiri_yamawasabi",
+                  "bento_aji",
+                  "bento_ebi",
+                  "other_soup",
+                  "other_genmai_dango"
+              ]
+
+              selected = [
+                  catalog[pid]
+                  for pid in preferred_ids
+                  if pid in catalog
+              ]
+
+              # IDが変わっている場合も登録済み商品から選ぶ
+              if not selected:
+                  selected = sorted(
+                      catalog.values(),
+                      key=lambda p: (
+                          p.get("sort_order") or 0,
+                          p["id"]
+                      )
+                  )[:6]
+
+              if not selected:
+                  raise SystemExit(
+                      "No active sample products available"
+                  )
+
+              statuses = (
+                  "selling",
+                  "low",
+                  "sold_out"
               )
 
-          # 画像生成のみ。WorkerへPUTしない。
+              sample_items = []
+
+              for i, p in enumerate(selected):
+                  sample_items.append({
+                      "product_id": p["id"],
+                      "status": statuses[i % 3],
+                      "name": p["name"],
+                      "category": p["category"],
+                      "sort_order": p.get("sort_order") or 0,
+                      "image_key": p.get("image_key"),
+                      "image_url": p.get("image_url"),
+                      "legacy_image_url": p.get(
+                          "legacy_image_url"
+                      )
+                  })
+
+              # ローカル変数だけを書き換える
+              # Worker側のD1には保存しない
+              today = {
+                  **today,
+                  "items": sample_items
+              }
+
+              items = sample_items
+
+              print("Sample lineup created:", len(items))
+
+          if not 1 <= len(items) <= 16:
+              raise SystemExit(
+                  "Preview requires 1 to 16 products"
+              )
+
+          print("Generating image with", len(items), "products")
+
+          # ローカルで生成するだけ
+          # PUT /muse/board は呼び出さない
           result = adapter.generate(
               today,
               "board-preview.jpg"
@@ -189,28 +289,40 @@ jobs:
           with Image.open("board-preview.jpg") as im:
               if im.format != "JPEG":
                   raise SystemExit("Preview is not JPEG")
+
               if im.size != (1080, 1920):
-                  raise SystemExit("Invalid preview dimensions")
+                  raise SystemExit(
+                      "Invalid image dimensions"
+                  )
+
               im.verify()
 
           size = os.path.getsize("board-preview.jpg")
 
+          if size == 0:
+              raise SystemExit("Preview image is empty")
+
           if size > 5 * 1024 * 1024:
-              raise SystemExit("Preview exceeds 5 MiB")
+              raise SystemExit(
+                  "Preview exceeds 5 MiB"
+              )
 
           print("Preview generated successfully")
           print("Image size:", size, "bytes")
           print("Product count:", result["count"])
+
           print("Photo sources:")
           for source in result["sources"]:
               print(
                   source["product_id"],
                   source["photo"]
               )
+
           print("No Worker PUT was performed")
+          print("No R2 or D1 changes were made")
           PY
 
-      # GitHub内に生成画像を一時保存
+      # 生成画像をGitHub ActionsのArtifactsへ保存
       - name: Upload preview artifact
         if: ${{ inputs.mode == 'preview' }}
         uses: actions/upload-artifact@v4
@@ -221,8 +333,8 @@ jobs:
           retention-days: 1
           compression-level: 0
 
-      # generate: 実際のWorker登録
-      # previewと異なりR2の公開画像を変更する可能性がある
+      # generate: Workerへの実登録
+      # テスト完了までは選択しない
       - name: Generate board if needed
         if: ${{ inputs.mode == 'generate' }}
         working-directory: board
