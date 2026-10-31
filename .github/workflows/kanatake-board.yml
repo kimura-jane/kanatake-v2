@@ -1,17 +1,20 @@
 
 name: kanatake-board
 
-# 最初は手動実行のみ。
-# Worker連携後はworkflow_dispatchで自動起動する。
+# 手動実行のみ。
+# check: 環境・認証確認
+# preview: 画像を生成してArtifactsに保存。公開しない
+# generate: 画像を生成してWorkerに登録
 on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "check=環境・認証確認 / generate=画像生成・登録"
+        description: "check=認証確認 / preview=非公開生成 / generate=Worker登録"
         required: true
         type: choice
         options:
           - check
+          - preview
           - generate
         default: check
 
@@ -102,9 +105,8 @@ jobs:
           print("Source verification: OK")
           PY
 
-      # checkモード限定。Workerへの読み取り専用認証テスト。
-      # GETのみ使用し、販売データや画像は変更しない。
-      - name: Verify Worker authentication (read-only)
+      # check: Workerへの読み取り専用認証テスト
+      - name: Verify Worker authentication
         if: ${{ inputs.mode == 'check' }}
         shell: bash
         env:
@@ -139,7 +141,88 @@ jobs:
 
           echo "Worker authentication OK (HTTP 200)"
 
-      # generateモードだけ画像生成・登録を実行。
+      # preview: データ取得と画像生成のみ
+      # PUT /muse/board は呼び出さない
+      - name: Generate preview image (no publishing)
+        if: ${{ inputs.mode == 'preview' }}
+        working-directory: board
+        shell: bash
+        env:
+          KANATAKE_SALES_API_BASE: ${{ vars.KANATAKE_SALES_API_BASE }}
+          KANATAKE_MUSE_TOKEN: ${{ secrets.KANATAKE_MUSE_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          test -n "$KANATAKE_SALES_API_BASE"
+          test -n "$KANATAKE_MUSE_TOKEN"
+
+          python - <<'PY'
+          import os
+          from PIL import Image
+          from watcher import SalesClient
+          import adapter
+
+          client = SalesClient(
+              os.environ["KANATAKE_SALES_API_BASE"],
+              os.environ["KANATAKE_MUSE_TOKEN"]
+          )
+
+          today = client.get_today()
+          items = today.get("items", [])
+
+          print("Day:", today.get("day"))
+          print("Phase:", today.get("phase"))
+          print("Version:", today.get("version"))
+          print("Items:", len(items))
+
+          if not isinstance(items, list) or not 1 <= len(items) <= 16:
+              raise SystemExit(
+                  "Preview requires 1 to 16 selected products"
+              )
+
+          # 画像生成のみ。WorkerへPUTしない。
+          result = adapter.generate(
+              today,
+              "board-preview.jpg"
+          )
+
+          with Image.open("board-preview.jpg") as im:
+              if im.format != "JPEG":
+                  raise SystemExit("Preview is not JPEG")
+              if im.size != (1080, 1920):
+                  raise SystemExit("Invalid preview dimensions")
+              im.verify()
+
+          size = os.path.getsize("board-preview.jpg")
+
+          if size > 5 * 1024 * 1024:
+              raise SystemExit("Preview exceeds 5 MiB")
+
+          print("Preview generated successfully")
+          print("Image size:", size, "bytes")
+          print("Product count:", result["count"])
+          print("Photo sources:")
+          for source in result["sources"]:
+              print(
+                  source["product_id"],
+                  source["photo"]
+              )
+          print("No Worker PUT was performed")
+          PY
+
+      # GitHub内に生成画像を一時保存
+      - name: Upload preview artifact
+        if: ${{ inputs.mode == 'preview' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: kanatake-board-preview
+          path: board/board-preview.jpg
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+      # generate: 実際のWorker登録
+      # previewと異なりR2の公開画像を変更する可能性がある
       - name: Generate board if needed
         if: ${{ inputs.mode == 'generate' }}
         working-directory: board
