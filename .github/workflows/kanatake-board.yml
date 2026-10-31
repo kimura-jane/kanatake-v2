@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "check=環境確認 / generate=画像生成・登録"
+        description: "check=環境・認証確認 / generate=画像生成・登録"
         required: true
         type: choice
         options:
@@ -102,6 +102,44 @@ jobs:
           print("Source verification: OK")
           PY
 
+      # checkモード限定。Workerへの読み取り専用認証テスト。
+      # GETのみ使用し、販売データや画像は変更しない。
+      - name: Verify Worker authentication (read-only)
+        if: ${{ inputs.mode == 'check' }}
+        shell: bash
+        env:
+          KANATAKE_SALES_API_BASE: ${{ vars.KANATAKE_SALES_API_BASE }}
+          KANATAKE_MUSE_TOKEN: ${{ secrets.KANATAKE_MUSE_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "$KANATAKE_SALES_API_BASE" ]; then
+            echo "::error::KANATAKE_SALES_API_BASE is missing"
+            exit 1
+          fi
+
+          if [ -z "$KANATAKE_MUSE_TOKEN" ]; then
+            echo "::error::KANATAKE_MUSE_TOKEN is missing"
+            exit 1
+          fi
+
+          code="$(curl \
+            --silent \
+            --show-error \
+            --output /dev/null \
+            --write-out '%{http_code}' \
+            --max-time 20 \
+            --header "Authorization: Bearer $KANATAKE_MUSE_TOKEN" \
+            "${KANATAKE_SALES_API_BASE%/}/muse/today")"
+
+          if [ "$code" != "200" ]; then
+            echo "::error::Worker authentication failed (HTTP $code)"
+            exit 1
+          fi
+
+          echo "Worker authentication OK (HTTP 200)"
+
+      # generateモードだけ画像生成・登録を実行。
       - name: Generate board if needed
         if: ${{ inputs.mode == 'generate' }}
         working-directory: board
