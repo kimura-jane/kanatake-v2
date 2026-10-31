@@ -1,0 +1,160 @@
+
+{
+  "purpose": "Legacy photo crop lookup ONLY; do not use these IDs as canonical product IDs",
+  "canonical_product_id_field": "items[].product_id from GET /muse/today",
+  "image_precedence": [
+    "items[].image_key (R2 original, no cropping)",
+    "items[].legacy_image_url plus crops.json crop if mapping exists",
+    "placeholder when no safe image match"
+  ],
+  "status_map": {
+    "selling": "on_sale",
+    "low": "low",
+    "sold_out": "sold_out"
+  },
+  "category_map": {
+    "onigiri": "おにぎり",
+    "bento": "お弁当",
+    "other": "その他"
+  },
+  "mappings": [
+    {
+      "worker_id": "onigiri_komatsuna",
+      "muse_id": "komatsuna_salmon_cheese",
+      "name": "小松菜と炙り鮭チーズ",
+      "crop_file": "IMG_5220.jpeg",
+      "placeholder": false
+    },
+    {
+      "worker_id": "onigiri_yamawasabi",
+      "muse_id": "yamawasabi_cream_cheese",
+      "name": "山わさびとクリームチーズ",
+      "crop_file": "IMG_5221.jpeg",
+      "placeholder": false
+    },
+    {
+      "worker_id": "onigiri_double_kombu",
+      "muse_id": "double_konbu",
+      "name": "ダブル昆布",
+      "crop_file": "IMG_5222.jpeg",
+      "placeholder": false
+    },
+    {
+      "worker_id": "onigiri_ume_kinpira",
+      "muse_id": "ume_kinpira_gobo",
+      "name": "梅きんぴらごぼう",
+      "crop_file": "IMG_5223.jpeg",
+      "placeholder": false
+    },
+    {
+      "worker_id": "onigiri_oba_miso",
+      "muse_id": "ooba_miso",
+      "name": "大葉みそ",
+      "crop_file": "IMG_5224.jpeg",
+      "placeholder": false
+    },
+    {
+      "worker_id": "onigiri_potato_curry",
+      "muse_id": "jagaimo_curry_soboro",
+      "name": "じゃがいもとカレーそぼろ",
+      "crop_file": "IMG_5226.jpeg",
+      "placeholder": false
+    },
+    {
+      "worker_id": "bento_aji",
+      "muse_id": "aji_fry_noriben",
+      "name": "アジフライ海苔弁当",
+      "crop_file": "IMG_8610.jpeg",
+      "placeholder": false
+    },
+    {
+      "worker_id": "bento_ebi",
+      "muse_id": "ebi_fry_noriben",
+      "name": "エビフライ海苔弁当",
+      "crop_file": "IMG_8610.jpeg",
+      "placeholder": false
+    },
+    {
+      "worker_id": "bento_karaage",
+      "muse_id": "karaage_noriben",
+      "name": "からあげ海苔弁当",
+      "crop_file": "IMG_8610.jpeg",
+      "placeholder": false
+    },
+    {
+      "worker_id": "other_soup",
+      "muse_id": "tonjiru",
+      "name": "本日の限定みそ汁",
+      "crop_file": "IMG_5231.jpeg",
+      "placeholder": false
+    },
+    {
+      "worker_id": "other_genmai_dango",
+      "muse_id": "genmai_dango",
+      "name": "女神の玄米だんご",
+      "crop_file": "IMG_5228.jpeg",
+      "placeholder": false
+    },
+    {
+      "worker_id": "limited_shacho_bento",
+      "muse_id": "shacho_noriben",
+      "name": "社長の海苔弁",
+      "crop_file": "IMG_8620.jpeg",
+      "placeholder": false
+    },
+    {
+      "worker_id": "other_munekara",
+      "muse_id": "munekara",
+      "name": "むねから",
+      "crop_file": "IMG_5229.jpeg",
+      "placeholder": false
+    },
+    {
+      "worker_id": "other_pori_chabin",
+      "muse_id": "pori_chabin",
+      "name": "ポリ茶瓶",
+      "crop_file": "IMG_5230.jpeg",
+      "placeholder": false
+    },
+    {
+      "worker_id": "other_megami_hohoemi",
+      "muse_id": "megami_no_hohoemi",
+      "name": "女神のほほえみ",
+      "crop_file": null,
+      "placeholder": true
+    }
+  ],
+  "worker_unmatched": [
+    {
+      "worker_id": "limited_shio",
+      "name": "女神の塩むすび"
+    },
+    {
+      "worker_id": "limited_corned_beef",
+      "name": "黄金旨みコーンビーフおにぎり"
+    },
+    {
+      "worker_id": "limited_matsutake",
+      "name": "松茸おにぎり"
+    },
+    {
+      "worker_id": "limited_mentai",
+      "name": "超たっぬ明太高菜マヨ"
+    },
+    {
+      "worker_id": "limited_kaki_bento",
+      "name": "牡蠣フライのり弁"
+    },
+    {
+      "worker_id": "limited_kakuni",
+      "name": "角煮丼"
+    }
+  ],
+  "muse_unmatched": [
+    {
+      "muse_id": "gentei_onigiri",
+      "name": "季節の限定おにぎり"
+    }
+  ],
+  "source_note": "v5: three additional catalog entries are seeded inactive until the shop confirms. Values/price based on Muse supplied reference, not independently verified."
+}
