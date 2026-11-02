@@ -1033,7 +1033,24 @@
     var generated = $('sales-board-generated');
 
     if (generated) {
-      var dateText = data.board_generated_at || '';
+      var dateText = '';
+
+      if (data.board_generated_at) {
+        var generatedDate = new Date(data.board_generated_at);
+
+        dateText = Number.isNaN(generatedDate.getTime())
+          ? data.board_generated_at
+          : new Intl.DateTimeFormat('ja-JP', {
+              timeZone: 'Asia/Tokyo',
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: false
+            }).format(generatedDate) + ' JST';
+      }
 
       generated.textContent = dateText
         ? '画像生成記録：' + dateText
