@@ -1,5 +1,5 @@
 
-/* Additional admin screens; existing coupon/review/notices code is untouched. */
+/* おにぎり屋かなたけ 商品管理・販売状況管理画面 */
 (function () {
   'use strict';
 
@@ -28,8 +28,8 @@
     sold_out: '売り切れ'
   };
 
-  function escapeHtml(s) {
-    return String(s == null ? '' : s).replace(
+  function escapeHtml(value) {
+    return String(value == null ? '' : value).replace(
       /[&<>"']/g,
       ch => ({
         '&': '&amp;',
@@ -45,28 +45,26 @@
     return (e && e.message) || '通信エラー';
   }
 
-  function message(id, msg, isError) {
+  function message(id, text, isError) {
     var el = $(id);
     if (!el) return;
-    el.textContent = msg;
+    el.textContent = text;
     el.style.color = isError ? '#b42318' : '#346a3d';
   }
 
   async function api(path, opts) {
     if (!base) {
-      throw new Error(
-        '販売状況APIのURLが未設定です。Cloudflareテスト環境の接続設定が必要です。'
-      );
+      throw new Error('販売状況APIのURLが未設定です');
     }
 
-    var token = typeof AUTH_TOKEN !== 'undefined' ? AUTH_TOKEN : '';
+    var token =
+      typeof AUTH_TOKEN !== 'undefined' ? AUTH_TOKEN : '';
 
     if (!token) {
       throw new Error('先に管理画面へログインしてください');
     }
 
     opts = opts || {};
-
     var headers = new Headers(opts.headers || {});
     headers.set('Authorization', 'Bearer ' + token);
 
@@ -100,9 +98,13 @@
     return data;
   }
 
+  // =====================================================
+  // 商品管理
+  // =====================================================
+
   async function loadProducts() {
-    var r = await api('/admin/products');
-    products = r.products || [];
+    var result = await api('/admin/products');
+    products = result.products || [];
     renderProducts();
   }
 
@@ -118,7 +120,9 @@
     host.replaceChildren();
 
     var file = $('sale-p-photo').files[0];
-    var existing = editing && products.find(p => p.id === editing);
+    var existing =
+      editing && products.find(p => p.id === editing);
+
     var imgUrl = null;
     var label = '';
 
@@ -182,7 +186,8 @@
     $('sale-product-form-title').textContent = '商品を編集';
     $('sale-p-name').value = p.name;
     $('sale-p-category').value = p.category;
-    $('sale-p-price').value = p.price_yen == null ? '' : p.price_yen;
+    $('sale-p-price').value =
+      p.price_yen == null ? '' : p.price_yen;
     $('sale-p-limited').checked = !!p.is_limited;
     $('sale-p-active').checked = !!p.is_active;
     $('sale-p-from').value = p.available_from || '';
@@ -212,7 +217,8 @@
 
       await new Promise(function (resolve, reject) {
         img.onload = resolve;
-        img.onerror = () => reject(new Error('写真を読み込めません'));
+        img.onerror = () =>
+          reject(new Error('写真を読み込めません'));
         img.src = url;
       });
 
@@ -262,9 +268,7 @@
       });
 
       if (blob.size > 5 * 1024 * 1024) {
-        throw new Error(
-          'JPEG変換後の写真が5MBを超えています'
-        );
+        throw new Error('JPEG変換後の写真が5MBを超えています');
       }
 
       return blob;
@@ -280,7 +284,6 @@
 
   async function saveProduct() {
     if (busy) return;
-
     busy = true;
 
     var savedDetails = false;
@@ -293,7 +296,8 @@
     try {
       var name = $('sale-p-name').value.trim();
       var priceText = $('sale-p-price').value.trim();
-      var price = priceText === '' ? null : Number(priceText);
+      var price =
+        priceText === '' ? null : Number(priceText);
 
       if (!name) {
         throw new Error('商品名を入力してください');
@@ -303,9 +307,7 @@
         price !== null &&
         (!Number.isInteger(price) || price < 0)
       ) {
-        throw new Error(
-          '価格は0円以上の整数で入力してください'
-        );
+        throw new Error('価格は0円以上の整数で入力してください');
       }
 
       var payload = {
@@ -335,9 +337,7 @@
         payload.available_until &&
         payload.available_from > payload.available_until
       ) {
-        throw new Error(
-          '販売終了日は開始日以降にしてください'
-        );
+        throw new Error('販売終了日は開始日以降にしてください');
       }
 
       var file = $('sale-p-photo').files[0];
@@ -345,15 +345,14 @@
       var id = editing;
 
       if (id) {
-        await api(
-          '/admin/products/' + encodeURIComponent(id),
-          {
-            method: 'PATCH',
-            json: payload
-          }
-        );
+        await api('/admin/products/' + encodeURIComponent(id), {
+          method: 'PATCH',
+          json: payload
+        });
       } else {
-        createRequestId = createRequestId || crypto.randomUUID();
+        createRequestId =
+          createRequestId || crypto.randomUUID();
+
         payload.client_id = createRequestId;
 
         var created = await api('/admin/products', {
@@ -372,8 +371,8 @@
 
         await api(
           '/admin/products/' +
-          encodeURIComponent(id) +
-          '/photo',
+            encodeURIComponent(id) +
+            '/photo',
           {
             method: 'PUT',
             headers: {
@@ -386,11 +385,7 @@
         savedPhoto = true;
       }
 
-      message(
-        'sale-p-message',
-        '商品を保存しました',
-        false
-      );
+      message('sale-p-message', '商品を保存しました', false);
 
       resetForm();
       await loadProducts();
@@ -438,18 +433,10 @@
       await loadProducts();
       await loadToday();
 
-      message(
-        'sale-p-message',
-        '削除しました',
-        false
-      );
+      message('sale-p-message', '削除しました', false);
 
     } catch (e) {
-      message(
-        'sale-p-message',
-        errorText(e),
-        true
-      );
+      message('sale-p-message', errorText(e), true);
     }
   }
 
@@ -457,11 +444,7 @@
     var i = products.findIndex(x => x.id === id);
     var j = i + delta;
 
-    if (
-      i < 0 ||
-      j < 0 ||
-      j >= products.length
-    ) {
+    if (i < 0 || j < 0 || j >= products.length) {
       return;
     }
 
@@ -486,11 +469,7 @@
       );
 
     } catch (e) {
-      message(
-        'sale-p-message',
-        errorText(e),
-        true
-      );
+      message('sale-p-message', errorText(e), true);
     }
   }
 
@@ -503,7 +482,7 @@
       return;
     }
 
-    products.forEach(function (p, i) {
+    products.forEach(function (p) {
       var div = document.createElement('div');
       div.className = 'sales-product';
 
@@ -520,7 +499,9 @@
       details.className = 'sales-product-details';
 
       details.innerHTML =
-        '<strong>' + escapeHtml(p.name) + '</strong>' +
+        '<strong>' +
+        escapeHtml(p.name) +
+        '</strong>' +
         '<small>' +
         (categories[p.category] || '') +
         ' / ' +
@@ -530,8 +511,16 @@
             : p.price_yen + '円'
         ) +
         (p.is_limited ? ' / 期間限定' : '') +
-        (p.available_from ? ' / ' + p.available_from + 'から' : '') +
-        (p.available_until ? ' / ' + p.available_until + 'まで' : '') +
+        (
+          p.available_from
+            ? ' / ' + p.available_from + 'から'
+            : ''
+        ) +
+        (
+          p.available_until
+            ? ' / ' + p.available_until + 'まで'
+            : ''
+        ) +
         (p.is_active ? '' : ' / 非表示') +
         '</small>';
 
@@ -547,13 +536,10 @@
         ['削除', () => archiveProduct(p.id)]
       ].forEach(pair => {
         var btn = document.createElement('button');
-
         btn.type = 'button';
         btn.className = 'btn btn-secondary btn-sm';
         btn.textContent = pair[0];
-
         btn.addEventListener('click', pair[1]);
-
         actions.appendChild(btn);
       });
 
@@ -562,9 +548,9 @@
     });
   }
 
-  // ======================================================
-  // 販売状況
-  // ======================================================
+  // =====================================================
+  // 本日の販売状況
+  // =====================================================
 
   async function loadToday(force) {
     if (selectionDirty && !force) return;
@@ -599,13 +585,13 @@
     })[today.phase] || today.phase;
 
     $('sales-story').checked = !!today.story_enabled;
-
     updateInstagramStatus();
 
     var selected = new Set(
-      today.items.map(x => x.product_id)
+      (today.items || []).map(x => x.product_id)
     );
 
+    // 当日の初回表示では、通常商品を初期選択する。
     if (
       !today.initialized &&
       today.phase === 'draft'
@@ -615,14 +601,8 @@
           p.is_active &&
           !p.is_limited &&
           p.id !== 'other_soup' &&
-          (
-            !p.available_from ||
-            p.available_from <= today.day
-          ) &&
-          (
-            !p.available_until ||
-            p.available_until >= today.day
-          )
+          (!p.available_from || p.available_from <= today.day) &&
+          (!p.available_until || p.available_until >= today.day)
         ) {
           selected.add(p.id);
         }
@@ -637,14 +617,8 @@
 
     var list = (today.products || []).filter(x =>
       x.is_active &&
-      (
-        !x.available_from ||
-        x.available_from <= day
-      ) &&
-      (
-        !x.available_until ||
-        x.available_until >= day
-      )
+      (!x.available_from || x.available_from <= day) &&
+      (!x.available_until || x.available_until >= day)
     );
 
     [false, true].forEach(limited => {
@@ -656,7 +630,6 @@
 
       var h = document.createElement('h3');
       h.className = 'sales-list-group';
-
       h.textContent = limited
         ? '期間限定・数量限定'
         : '定番';
@@ -674,13 +647,11 @@
             cb.type = 'checkbox';
             cb.value = p.id;
             cb.checked = selected.has(p.id);
-
             cb.disabled =
               today.closed_for_today ||
               today.phase === 'ended';
 
             var text = document.createElement('span');
-
             text.textContent =
               p.name +
               (
@@ -718,13 +689,12 @@
     var statusHost = $('sales-status-list');
     statusHost.innerHTML = '';
 
-    today.items.forEach(p => {
+    (today.items || []).forEach(p => {
       var card = document.createElement('div');
       card.className = 'sales-current';
 
       var name = document.createElement('strong');
       name.textContent = p.name;
-
       card.appendChild(name);
 
       var bar = document.createElement('div');
@@ -732,7 +702,6 @@
 
       Object.entries(statuses).forEach(([value, label]) => {
         var btn = document.createElement('button');
-
         btn.type = 'button';
 
         btn.className =
@@ -767,7 +736,8 @@
 
   async function saveSelection() {
     var ids = [
-      ...$('sales-select-list').querySelectorAll('input:checked')
+      ...$('sales-select-list')
+        .querySelectorAll('input:checked')
     ].map(x => x.value);
 
     today = await api('/admin/today', {
@@ -779,7 +749,6 @@
     });
 
     selectionDirty = false;
-
     await loadToday(true);
   }
 
@@ -819,7 +788,8 @@
     try {
       if (action === 'start') {
         var ids = [
-          ...$('sales-select-list').querySelectorAll('input:checked')
+          ...$('sales-select-list')
+            .querySelectorAll('input:checked')
         ];
 
         if (!ids.length) {
@@ -837,12 +807,22 @@
       });
 
       selectionDirty = false;
-
       await loadToday(true);
+
+      var actionMessages = {
+        start:
+          '販売を開始しました。画像はGitHub Actionsで自動生成されます。',
+        pause:
+          '販売を一時中止しました。公開画像は非表示になります。',
+        resume:
+          '販売を再開しました。画像はGitHub Actionsで自動生成されます。',
+        end:
+          '営業を終了しました。本日の公開画像は非表示になります。'
+      };
 
       message(
         'sales-message',
-        '操作を反映しました。画像はMuseが自動更新します',
+        actionMessages[action] || '操作を反映しました',
         false
       );
 
@@ -860,7 +840,6 @@
 
   async function setStatus(id, status) {
     if (busy) return;
-
     busy = true;
 
     try {
@@ -876,7 +855,7 @@
 
       message(
         'sales-message',
-        '販売状況を変更しました',
+        '販売状況を変更しました。新しい画像は自動生成されます。',
         false
       );
 
@@ -892,13 +871,12 @@
     }
   }
 
-  // ======================================================
-  // 追加機能：Instagram設定の見やすさ改善
-  // ======================================================
+  // =====================================================
+  // Instagram設定
+  // =====================================================
 
   function updateInstagramStatus() {
     var el = $('sales-instagram-status');
-
     if (!el || !today) return;
 
     var selected = $('sales-story').checked;
@@ -914,7 +892,7 @@
     }
 
     el.textContent = saved
-      ? '現在の保存設定：ON（Instagram投稿の対象）'
+      ? '現在の保存設定：ON（将来のInstagram投稿対象）'
       : '現在の保存設定：OFF（アプリ表示のみ）';
 
     el.style.color = saved
@@ -922,13 +900,12 @@
       : '#555';
   }
 
-  // ======================================================
-  // 追加機能：最新画像の表示更新
-  // ======================================================
+  // =====================================================
+  // 画像の表示・生成状態
+  // =====================================================
 
   function imageUrlWithCacheBust(url, force) {
     if (!url) return '';
-
     if (!force) return url;
 
     try {
@@ -946,29 +923,43 @@
     }
   }
 
+  // 修正：
+  // board_version が null の初回生成時も、
+  // 正しく「生成待ち」と判断する。
   function hasPendingBoard(data) {
-    if (!data || data.phase !== 'live') {
-      return false;
-    }
-
     if (
-      data.version == null ||
-      data.board_version == null
+      !data ||
+      data.phase !== 'live' ||
+      data.closed_for_today
     ) {
       return false;
     }
 
     var current = Number(data.version);
-    var board = Number(data.board_version);
 
-    return Number.isFinite(current) &&
-      Number.isFinite(board) &&
-      current > board;
+    if (
+      !Number.isSafeInteger(current) ||
+      current < 1
+    ) {
+      return false;
+    }
+
+    // 公開中の画像URLがある場合は生成完了。
+    if (data.board_url) {
+      return false;
+    }
+
+    // 生成履歴なし。
+    if (data.board_version == null) {
+      return true;
+    }
+
+    // 古い画像、または画像キー欠落など。
+    return true;
   }
 
   function renderBoardPreview(data, force) {
     var prev = $('sales-board-preview');
-
     if (!prev || !data) return;
 
     prev.replaceChildren();
@@ -985,6 +976,14 @@
 
       img.alt = '本日の販売状況画像';
 
+      img.onerror = function () {
+        message(
+          'sales-board-message',
+          '画像の読み込みに失敗しました。「最新画像を更新」で再確認してください。',
+          true
+        );
+      };
+
       prev.appendChild(img);
 
       var info = document.createElement('p');
@@ -998,12 +997,7 @@
           '表示画像 version ' +
           data.board_version +
           ' ／ 最新データ version ' +
-          data.version +
-          (
-            pending
-              ? '（新しい画像を生成待ち）'
-              : ''
-          );
+          data.version;
 
       } else {
         info.textContent =
@@ -1016,12 +1010,21 @@
       var text = document.createElement('p');
       text.className = 'sales-note';
 
-      if (data.phase === 'live') {
+      if (pending) {
         text.textContent =
-          'Museによる最新画像の生成待ちです';
+          '最新画像を生成待ちです。GitHub Actionsで自動生成し、完了後に公開されます。';
+      } else if (data.closed_for_today) {
+        text.textContent =
+          '22時を過ぎたため、本日の画像は非公開です。';
+      } else if (data.phase === 'paused') {
+        text.textContent =
+          '販売を一時中止しているため、画像は非公開です。';
+      } else if (data.phase === 'ended') {
+        text.textContent =
+          '営業終了のため、本日の画像は非公開です。';
       } else {
         text.textContent =
-          '現在、画像は公開していません';
+          '現在、公開中の画像はありません。';
       }
 
       prev.appendChild(text);
@@ -1034,10 +1037,12 @@
 
       generated.textContent = dateText
         ? '画像生成記録：' + dateText
-        : '画像生成時刻：取得できません';
+        : '画像生成記録：まだありません';
     }
   }
 
+  // 読み取り専用。
+  // 「最新画像を更新」は画像生成を開始しない。
   async function refreshLatestBoard(manual) {
     if (boardRefreshBusy) return;
 
@@ -1053,8 +1058,8 @@
     try {
       var latest = await api('/admin/today');
 
-      // 未保存のチェック状態がある場合、
-      // 商品一覧・Instagram設定を上書きしない。
+      // 未保存のチェック状態がある場合は
+      // 商品選択・Instagram設定を上書きしない。
       if (selectionDirty) {
         renderBoardPreview(latest, !!manual);
       } else {
@@ -1073,7 +1078,7 @@
 
         if (hasPendingBoard(latest)) {
           note =
-            '新しい画像はまだ生成中です。少し後にもう一度確認してください。';
+            '新しい画像を生成待ちです。少し後にもう一度確認してください。';
         } else if (latest.board_url) {
           note =
             'Workerから最新の画像情報を再取得しました。';
@@ -1106,22 +1111,9 @@
     }
   }
 
-  // ======================================================
-  // 追加機能：手動画像再生成
-  //
-  // Workerが再生成対応を明示した場合だけ有効化する。
-  // 現在のv5 Workerでは未対応。
-  //
-  // 将来必要なWorker仕様：
-  // GET /admin/today:
-  //   regenerate_supported: true
-  //
-  // POST /admin/today/action:
-  //   { action: "regenerate" }
-  //
-  // Worker側でversionを更新し、
-  // Muse watcherが新versionを検出して画像生成する。
-  // ======================================================
+  // =====================================================
+  // 手動画像再生成
+  // =====================================================
 
   function updateGenerateButton() {
     var btn = $('sales-board-generate');
@@ -1138,7 +1130,7 @@
       btn.textContent = '画像を再生成（準備中）';
 
       note.textContent =
-        '手動再生成はWorker側の対応待ちです。販売状態を変更した場合は、これまでどおりMuseが自動生成します。';
+        '現在のWorkerは手動再生成に対応していません。販売状態の変更による自動生成は利用できます。';
 
       return;
     }
@@ -1147,14 +1139,19 @@
       today.phase === 'live' &&
       !today.closed_for_today &&
       !selectionDirty &&
+      !busy &&
       !boardGenerationBusy;
 
     btn.disabled = !available;
+
     btn.textContent = boardGenerationBusy
       ? '生成依頼中…'
       : '画像を再生成';
 
-    if (selectionDirty) {
+    if (today.closed_for_today) {
+      note.textContent =
+        '22時以降は再生成できません。';
+    } else if (selectionDirty) {
       note.textContent =
         '先に「選択・設定を反映」を押して保存してください。';
     } else if (today.phase !== 'live') {
@@ -1162,7 +1159,7 @@
         '配信中のみ手動再生成できます。';
     } else {
       note.textContent =
-        '現在保存されている販売状況で画像を再生成します。';
+        '現在の販売状況で画像を作り直します。新しい画像が完成するまで、公開画像は一時的に非表示になります。';
     }
   }
 
@@ -1196,7 +1193,7 @@
     ) {
       message(
         'sales-board-message',
-        '配信中のみ画像を再生成できます。',
+        '配信中かつ22時より前のみ再生成できます。',
         true
       );
       return;
@@ -1204,7 +1201,7 @@
 
     if (
       !confirm(
-        '現在の販売状況で画像を再生成しますか？'
+        '現在の販売状況で画像を再生成しますか？\n\n新しい画像が完成するまで、公開画像は一時的に非表示になります。'
       )
     ) {
       return;
@@ -1221,13 +1218,13 @@
         }
       });
 
+      await loadToday(true);
+
       message(
         'sales-board-message',
-        '再生成を依頼しました。Museによる画像生成と登録を待っています。',
+        '再生成を受け付けました。GitHub Actionsによる画像生成と登録を待っています。',
         false
       );
-
-      await loadToday(true);
 
     } catch (e) {
       message(
@@ -1242,9 +1239,9 @@
     }
   }
 
-  // ======================================================
-  // UI追加：既存HTMLは変更しない
-  // ======================================================
+  // =====================================================
+  // 既存HTMLを変更せず、UIを追加
+  // =====================================================
 
   function setupSalesEnhancements() {
     if ($('sales-board-refresh')) return;
@@ -1326,7 +1323,7 @@
 
     document.head.appendChild(style);
 
-    // Instagram設定を分かりやすくする
+    // Instagram設定を分かりやすく表示する。
     var story = $('sales-story');
     var storyLabel = story.closest('label');
 
@@ -1359,16 +1356,16 @@
     storyHelp.textContent =
       'ON：Instagram投稿の対象にします。' +
       ' OFF：アプリの販売状況だけを更新します。' +
-      ' ※現在Instagramへの自動投稿連携は未完成です。' +
+      ' ※Instagramへの自動投稿連携は現在未完成です。' +
       ' ONでも実際には投稿されません。' +
-      ' 設定を変更したら「選択・設定を反映」で保存してください。';
+      ' 設定変更後は「選択・設定を反映」で保存してください。';
 
     storyStatus.insertAdjacentElement(
       'afterend',
       storyHelp
     );
 
-    // 現在の画像カードに操作ボタンを追加
+    // 画像表示と操作ボタン。
     var preview = $('sales-board-preview');
     var card = preview.parentElement;
 
@@ -1404,7 +1401,7 @@
     generateNote.className = 'sales-board-note';
 
     generateNote.textContent =
-      '手動再生成はWorker側の対応待ちです。';
+      'Workerの対応状況を確認中です。';
 
     card.insertBefore(generateNote, preview);
 
@@ -1426,9 +1423,9 @@
     );
   }
 
-  // ======================================================
+  // =====================================================
   // イベント登録
-  // ======================================================
+  // =====================================================
 
   setupSalesEnhancements();
 
@@ -1463,10 +1460,10 @@
     updateSelection
   );
 
-  ['start', 'pause', 'resume', 'end'].forEach(k => {
-    $('sales-' + k).addEventListener(
+  ['start', 'pause', 'resume', 'end'].forEach(action => {
+    $('sales-' + action).addEventListener(
       'click',
-      () => doAction(k)
+      () => doAction(action)
     );
   });
 
@@ -1498,9 +1495,9 @@
       });
     });
 
-  // 60秒間隔の自動確認を維持する。
-  // 未保存の操作がある場合は画像だけを確認し、
-  // チェックボックスの選択状態は消さない。
+  // 60秒ごとの自動確認。
+  // 未保存の操作がある場合は画像だけ更新し、
+  // チェックボックスの選択状態は維持する。
   setInterval(function () {
     var tab = document.querySelector(
       '#tab-sales.active'
