@@ -122,39 +122,56 @@
       "name": "女神のほほえみ",
       "crop_file": null,
       "placeholder": true
-    }
-  ],
-  "worker_unmatched": [
-    {
-      "worker_id": "limited_shio",
-      "name": "女神の塩むすび"
-    },
-    {
-      "worker_id": "limited_corned_beef",
-      "name": "黄金旨みコーンビーフおにぎり"
-    },
-    {
-      "worker_id": "limited_matsutake",
-      "name": "松茸おにぎり"
-    },
-    {
-      "worker_id": "limited_mentai",
-      "name": "超たっぬ明太高菜マヨ"
-    },
-    {
-      "worker_id": "limited_kaki_bento",
-      "name": "牡蠣フライのり弁"
     },
     {
       "worker_id": "limited_kakuni",
-      "name": "角煮丼"
+      "muse_id": "limited_kakuni",
+      "name": "角煮丼",
+      "crop_file": "IMG_8611.jpeg",
+      "placeholder": false
+    },
+    {
+      "worker_id": "limited_shio",
+      "muse_id": "limited_shio",
+      "name": "女神の塩むすび",
+      "crop_file": "IMG_8612.jpeg",
+      "placeholder": false
+    },
+    {
+      "worker_id": "limited_kaki_bento",
+      "muse_id": "limited_kaki_bento",
+      "name": "牡蠣フライのり弁",
+      "crop_file": "IMG_8614.jpeg",
+      "placeholder": false
+    },
+    {
+      "worker_id": "limited_corned_beef",
+      "muse_id": "limited_corned_beef",
+      "name": "黄金旨みコーンビーフおにぎり",
+      "crop_file": "IMG_8615.jpeg",
+      "placeholder": false
+    },
+    {
+      "worker_id": "limited_matsutake",
+      "muse_id": "limited_matsutake",
+      "name": "松茸おにぎり",
+      "crop_file": "IMG_8618.jpeg",
+      "placeholder": false
+    },
+    {
+      "worker_id": "limited_mentai",
+      "muse_id": "limited_mentai",
+      "name": "超たっぷり明太高菜マヨ",
+      "crop_file": "IMG_8621.jpeg",
+      "placeholder": false
     }
   ],
+  "worker_unmatched": [],
   "muse_unmatched": [
     {
       "muse_id": "gentei_onigiri",
       "name": "季節の限定おにぎり"
     }
   ],
-  "source_note": "v5: three additional catalog entries are seeded inactive until the shop confirms. Values/price based on Muse supplied reference, not independently verified."
+  "source_note": "Legacy photo mapping. The six limited products use dedicated GitHub images."
 }
