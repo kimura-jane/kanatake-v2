@@ -34,7 +34,7 @@
       "how": "商品写真"
     },
     "jagaimo_curry_soboro": {
-      "file": "IMG_5226.jpeg",
+      "file": "IMG_5225.jpeg",
       "crop": [83, 98, 939, 889],
       "how": "商品写真"
     },
@@ -93,27 +93,27 @@
     "limited_kakuni": {
       "file": "IMG_8611.jpeg",
       "crop": [385, 145, 845, 770],
-      "how": "角煮の料理部分を優先。暫定座標"
+      "how": "角煮の料理部分を優先"
     },
     "limited_shio": {
       "file": "IMG_8612.jpeg",
-      "crop": [380, 550, 520, 550],
-      "how": "塩むすび本体を優先。暫定座標"
+      "crop": [410, 580, 460, 420],
+      "how": "塩むすび本体を中心に切り抜く"
     },
     "limited_kaki_bento": {
       "file": "IMG_8614.jpeg",
-      "crop": [405, 170, 830, 645],
-      "how": "弁当部分を優先。暫定座標"
+      "crop": [420, 245, 780, 550],
+      "how": "弁当部分を中心に切り抜く"
     },
     "limited_corned_beef": {
       "file": "IMG_8615.jpeg",
-      "crop": [680, 245, 545, 720],
-      "how": "コーンビーフおにぎりを優先。暫定座標"
+      "crop": [700, 320, 480, 620],
+      "how": "価格表示を避けておにぎりを切り抜く"
     },
     "limited_matsutake": {
       "file": "IMG_8618.jpeg",
-      "crop": [250, 120, 900, 710],
-      "how": "商品写真の中心部分。暫定座標"
+      "crop": [360, 180, 760, 620],
+      "how": "広告文字を減らして商品部分を切り抜く"
     },
     "limited_mentai": {
       "file": "IMG_8621.jpeg",
