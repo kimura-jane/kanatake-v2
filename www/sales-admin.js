@@ -410,6 +410,7 @@
     } finally {
       busy = false;
       btn.disabled = false;
+      updateGenerateButton();
     }
   }
 
@@ -836,6 +837,7 @@
 
     } finally {
       busy = false;
+      updateGenerateButton();
     }
   }
 
@@ -869,6 +871,7 @@
 
     } finally {
       busy = false;
+      updateGenerateButton();
     }
   }
 
