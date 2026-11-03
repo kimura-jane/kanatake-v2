@@ -77,6 +77,7 @@
       method: opts.method || 'GET',
       headers: headers,
       body: opts.body,
+      signal: opts.signal,
       cache: 'no-store'
     });
 
@@ -923,7 +924,6 @@
     }
   }
 
-  // 修正：
   // board_version が null の初回生成時も、
   // 正しく「生成待ち」と判断する。
   function hasPendingBoard(data) {
@@ -944,23 +944,39 @@
       return false;
     }
 
-    // 公開中の画像URLがある場合は生成完了。
     if (data.board_url) {
       return false;
     }
 
-    // 生成履歴なし。
     if (data.board_version == null) {
       return true;
     }
 
-    // 古い画像、または画像キー欠落など。
     return true;
   }
 
   function renderBoardPreview(data, force) {
     var prev = $('sales-board-preview');
     if (!prev || !data) return;
+
+    // 同じ画像ならDOMを作り直さない。
+    var existingImage = prev.querySelector('img');
+
+    if (
+      !force &&
+      data.board_url &&
+      existingImage &&
+      existingImage.getAttribute('src') === data.board_url &&
+      prev.dataset.salesDay === data.day &&
+      prev.dataset.salesGeneratedAt ===
+        (data.board_generated_at || '')
+    ) {
+      return;
+    }
+
+    prev.dataset.salesDay = data.day || '';
+    prev.dataset.salesGeneratedAt =
+      data.board_generated_at || '';
 
     prev.replaceChildren();
 
@@ -977,9 +993,11 @@
       img.alt = '本日の販売状況画像';
 
       img.onerror = function () {
+        img.remove();
+
         message(
           'sales-board-message',
-          '画像の読み込みに失敗しました。「最新画像を更新」で再確認してください。',
+          '画像の読み込みに失敗しました。次回の自動確認で再試行します。',
           true
         );
       };
@@ -1036,9 +1054,12 @@
       var dateText = '';
 
       if (data.board_generated_at) {
-        var generatedDate = new Date(data.board_generated_at);
+        var generatedDate =
+          new Date(data.board_generated_at);
 
-        dateText = Number.isNaN(generatedDate.getTime())
+        dateText = Number.isNaN(
+          generatedDate.getTime()
+        )
           ? data.board_generated_at
           : new Intl.DateTimeFormat('ja-JP', {
               timeZone: 'Asia/Tokyo',
@@ -1058,73 +1079,45 @@
     }
   }
 
-  // 読み取り専用。
-  // 「最新画像を更新」は画像生成を開始しない。
-  async function refreshLatestBoard(manual) {
+  // 画像だけ自動確認する。
+  // 再生成は行わない。
+  // 未保存の商品選択・Instagram設定は変更しない。
+  async function refreshLatestBoard() {
     if (boardRefreshBusy) return;
 
     boardRefreshBusy = true;
 
-    var btn = $('sales-board-refresh');
+    var controller = new AbortController();
 
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = '確認中…';
-    }
+    var timeout = setTimeout(
+      () => controller.abort(),
+      15000
+    );
 
     try {
-      var latest = await api('/admin/today');
+      var latest = await api('/admin/today', {
+        signal: controller.signal
+      });
 
-      // 未保存のチェック状態がある場合は
-      // 商品選択・Instagram設定を上書きしない。
-      if (selectionDirty) {
-        renderBoardPreview(latest, !!manual);
-      } else {
-        today = latest;
-        products = latest.products || products;
-
-        renderSales();
-
-        if (manual) {
-          renderBoardPreview(latest, true);
-        }
-      }
-
-      if (manual) {
-        var note = '';
-
-        if (hasPendingBoard(latest)) {
-          note =
-            '新しい画像を生成待ちです。少し後にもう一度確認してください。';
-        } else if (latest.board_url) {
-          note =
-            'Workerから最新の画像情報を再取得しました。';
-        } else {
-          note =
-            '最新情報を確認しました。現在表示できる画像はありません。';
-        }
-
-        message(
-          'sales-board-message',
-          note,
-          false
-        );
-      }
+      renderBoardPreview(latest, false);
 
     } catch (e) {
+      var reason =
+        e && e.name === 'AbortError'
+          ? '通信がタイムアウトしました'
+          : errorText(e);
+
       message(
         'sales-board-message',
-        '画像の更新確認に失敗しました：' + errorText(e),
+        '画像の自動確認に失敗しました：' +
+          reason +
+          '。次回に再試行します。',
         true
       );
 
     } finally {
+      clearTimeout(timeout);
       boardRefreshBusy = false;
-
-      if (btn) {
-        btn.disabled = false;
-        btn.textContent = '最新画像を更新';
-      }
     }
   }
 
@@ -1246,7 +1239,8 @@
     } catch (e) {
       message(
         'sales-board-message',
-        '再生成依頼に失敗しました：' + errorText(e),
+        '再生成依頼に失敗しました：' +
+          errorText(e),
         true
       );
 
@@ -1261,7 +1255,7 @@
   // =====================================================
 
   function setupSalesEnhancements() {
-    if ($('sales-board-refresh')) return;
+    if ($('sales-board-generate')) return;
 
     var style = document.createElement('style');
 
@@ -1389,20 +1383,14 @@
     var tools = document.createElement('div');
     tools.className = 'sales-board-tools';
 
-    var refresh = document.createElement('button');
-    refresh.type = 'button';
-    refresh.id = 'sales-board-refresh';
-    refresh.className = 'btn btn-primary';
-    refresh.textContent = '最新画像を更新';
-
     var generate = document.createElement('button');
     generate.type = 'button';
     generate.id = 'sales-board-generate';
     generate.className = 'btn btn-secondary';
-    generate.textContent = '画像を再生成（準備中）';
+    generate.textContent =
+      '画像を再生成（準備中）';
     generate.disabled = true;
 
-    tools.appendChild(refresh);
     tools.appendChild(generate);
 
     card.insertBefore(tools, preview);
@@ -1429,11 +1417,6 @@
 
     card.insertBefore(boardMessage, preview);
 
-    refresh.addEventListener(
-      'click',
-      () => refreshLatestBoard(true)
-    );
-
     generate.addEventListener(
       'click',
       requestRegeneration
@@ -1446,16 +1429,22 @@
 
   setupSalesEnhancements();
 
-  $('sales-select-list').addEventListener('change', () => {
-    selectionDirty = true;
-    updateGenerateButton();
-  });
+  $('sales-select-list').addEventListener(
+    'change',
+    () => {
+      selectionDirty = true;
+      updateGenerateButton();
+    }
+  );
 
-  $('sales-story').addEventListener('change', () => {
-    selectionDirty = true;
-    updateInstagramStatus();
-    updateGenerateButton();
-  });
+  $('sales-story').addEventListener(
+    'change',
+    () => {
+      selectionDirty = true;
+      updateInstagramStatus();
+      updateGenerateButton();
+    }
+  );
 
   $('sale-p-photo').addEventListener(
     'change',
@@ -1486,36 +1475,43 @@
 
   document.querySelectorAll('.tabs .tab-btn')
     .forEach(btn => {
-      btn.addEventListener('click', async function () {
-        if (
-          !['products', 'sales'].includes(btn.dataset.tab)
-        ) {
-          return;
-        }
-
-        try {
-          if (btn.dataset.tab === 'products') {
-            await loadProducts();
-          } else {
-            await loadToday();
+      btn.addEventListener(
+        'click',
+        async function () {
+          if (
+            !['products', 'sales'].includes(
+              btn.dataset.tab
+            )
+          ) {
+            return;
           }
 
-        } catch (e) {
-          message(
-            btn.dataset.tab === 'products'
-              ? 'sale-p-message'
-              : 'sales-message',
-            errorText(e),
-            true
-          );
+          try {
+            if (btn.dataset.tab === 'products') {
+              await loadProducts();
+            } else {
+              if (selectionDirty) {
+                await refreshLatestBoard();
+              } else {
+                await loadToday();
+              }
+            }
+
+          } catch (e) {
+            message(
+              btn.dataset.tab === 'products'
+                ? 'sale-p-message'
+                : 'sales-message',
+              errorText(e),
+              true
+            );
+          }
         }
-      });
+      );
     });
 
-  // 60秒ごとの自動確認。
-  // 未保存の操作がある場合は画像だけ更新し、
-  // チェックボックスの選択状態は維持する。
-  setInterval(function () {
+  // 販売状況タブ表示中は60秒ごとに画像を確認。
+  function checkBoardWhenVisible() {
     var tab = document.querySelector(
       '#tab-sales.active'
     );
@@ -1532,23 +1528,22 @@
       return;
     }
 
-    if (selectionDirty) {
-      refreshLatestBoard(false).catch(e => {
-        message(
-          'sales-board-message',
-          errorText(e),
-          true
-        );
-      });
-    } else {
-      loadToday().catch(e => {
-        message(
-          'sales-message',
-          errorText(e),
-          true
-        );
-      });
+    refreshLatestBoard();
+  }
+
+  setInterval(
+    checkBoardWhenVisible,
+    60000
+  );
+
+  // スマートフォンで管理画面に戻ったら確認。
+  document.addEventListener(
+    'visibilitychange',
+    function () {
+      if (document.visibilityState === 'visible') {
+        checkBoardWhenVisible();
+      }
     }
-  }, 60000);
+  );
 
 })();
