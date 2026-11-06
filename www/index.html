@@ -111,6 +111,7 @@
           <span class="financie-code" id="financie-code">ET39M2</span>
           <button class="financie-copy-btn" id="financie-copy-btn" type="button">📋 コピー</button>
         </div>
+        <p id="financie-copy-result" class="result-text"></p>
         <p class="financie-bonus">このコードを使って登録すると <strong>1トークンプレゼント</strong> 🎉<br>さらに運営からも追加でトークンをお渡しします。<br>トークンは売買もできますが、参加してくれるだけでも嬉しいです！ぜひ感想や応援メッセージを書き込んでね 💬</p>
         <p class="financie-note">※ブラウザからその場で会員登録できます。アプリは後からのダウンロードでOK！</p>
       </div>
@@ -294,11 +295,11 @@
       <div class="section-card" id="push-section">
         <h2 class="section-title">🔔 出店通知</h2>
         <label class="settings-option">
-          <input type="radio" name="pushOnOff" value="off" checked>
+          <input type="radio" id="push_off" name="pushOnOff" value="off" checked>
           <span class="settings-option-text">OFF（通知しない）</span>
         </label>
         <label class="settings-option">
-          <input type="radio" name="pushOnOff" value="on">
+          <input type="radio" id="push_on" name="pushOnOff" value="on">
           <span class="settings-option-text">ON（通知する）</span>
         </label>
 
@@ -318,11 +319,11 @@
           <div class="settings-card">
             <p class="settings-card-title">📍 通知する出店場所</p>
             <label class="settings-option">
-              <input type="radio" name="placeMode" value="all" checked>
+              <input type="radio" id="place_all" name="placeMode" value="all" checked>
               <span class="settings-option-text">すべての出店を通知する</span>
             </label>
             <label class="settings-option">
-              <input type="radio" name="placeMode" value="custom">
+              <input type="radio" id="place_custom" name="placeMode" value="custom">
               <span class="settings-option-text">場所を選んで通知</span>
             </label>
             <div class="settings-places" id="placeList">
