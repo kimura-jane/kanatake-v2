@@ -113,8 +113,22 @@ def text_width(draw, text, f):
 
 
 def center_text(draw, text, y, f, fill, x0=0, x1=W):
-    x = (x0 + x1 - text_width(draw, text, f)) / 2
-    draw.text((x, y), text, font=f, fill=fill)
+    """実際の文字の外接矩形を基準に、上端と左右中央を揃える。"""
+    bbox = draw.textbbox((0, 0), text, font=f)
+    tw = bbox[2] - bbox[0]
+    x = (x0 + x1 - tw) / 2 - bbox[0]
+    draw.text((round(x), round(y - bbox[1])), text, font=f, fill=fill)
+
+
+def center_text_in_box(draw, text, box, f, fill):
+    """手書きフォントでも帯やバッジ内に上下左右中央に配置する。"""
+    x0, y0, x1, y1 = box
+    bbox = draw.textbbox((0, 0), text, font=f)
+    tw = bbox[2] - bbox[0]
+    th = bbox[3] - bbox[1]
+    x = (x0 + x1 - tw) / 2 - bbox[0]
+    y = (y0 + y1 - th) / 2 - bbox[1]
+    draw.text((round(x), round(y)), text, font=f, fill=fill)
 
 
 def placeholder_panel(aspect=0.75, label='写真準備中'):
@@ -198,8 +212,8 @@ def draw_paper(d):
 def paste_mascot(canvas, mascot):
     if mascot is None:
         return
-    mascot.thumbnail((132, 132), Image.Resampling.LANCZOS)
-    x, y = 59, 82
+    mascot.thumbnail((145, 145), Image.Resampling.LANCZOS)
+    x, y = 46, 72
     canvas.paste(mascot, (x, y), mascot)
 
 
@@ -208,11 +222,13 @@ def draw_header(canvas, d, dt):
     paste_mascot(canvas, mascot)
     d.rounded_rectangle((210, 76, 1019, 136), radius=29,
                         fill=(255, 239, 205), outline=LINE, width=2)
-    center_text(d, 'おにぎりでえがお', 82, font(41, hand=True), BROWN, 218, 1010)
+    center_text_in_box(d, 'おにぎりでえがお',
+                       (210, 76, 1019, 136), font(41, hand=True), BROWN)
     center_text(d, 'おにぎり屋かなたけ', 147, font(44, hand=True), BROWN, 120, W - 90)
     d.rounded_rectangle((109, 223, 971, 300), radius=38,
                         fill=(255, 228, 173))
-    center_text(d, '本日の販売状況', 230, font(57, hand=True), BROWN)
+    center_text_in_box(d, '本日の販売状況',
+                       (109, 223, 971, 300), font(57, hand=True), BROWN)
     weekday = WEEKDAYS[dt.weekday()]
     label = f'{dt.month}月{dt.day}日（{weekday}） {dt.hour:02d}:{dt.minute:02d}時点'
     center_text(d, label, 306, font(33), MUTED)
@@ -297,7 +313,7 @@ def draw_status(d, status, x, y, card_width):
     by = y + 7
     d.rounded_rectangle((bx, by, bx + bw, by + bh), radius=bh // 2,
                         fill=bg, outline=WHITE, width=2)
-    center_text(d, label, by + 5, f, WHITE, bx, bx + bw)
+    center_text_in_box(d, label, (bx, by, bx + bw, by + bh), f, WHITE)
 
 
 def draw_card(canvas, d, x, y, w, h, record, crops, cols):
@@ -323,7 +339,9 @@ def draw_card(canvas, d, x, y, w, h, record, crops, cols):
     preferred = 26 if cols == 5 else 31 if cols == 4 else 35 if cols == 3 else 44
     f, lines, line_h = name_layout(d, record['name'], w - 18,
                                    label_h, preferred, record['breaks'])
-    total_h = len(lines) * line_h
+    ink_h = max(d.textbbox((0, 0), line, font=f)[3] -
+                d.textbbox((0, 0), line, font=f)[1] for line in lines)
+    total_h = (len(lines) - 1) * line_h + ink_h
     name_y = label_y + max(0, (label_h - total_h) // 2)
     for text in lines:
         center_text(d, text, name_y, f, BROWN, x + 5, x + w - 5)
@@ -381,6 +399,8 @@ def build(spec, out_path):
     n = len(items)
     cols = (1 if n <= 2 else 2 if n <= 4 else 3 if n <= 8
             else 4 if n <= 12 else 5)
+    # 各カテゴリ2品なら2列にする。カードの左端が見出しと揃う。
+    cols = min(cols, max(len(part) for _, part in grouped))
     gap_x = 14 if cols >= 4 else 18
     card_w = (W - 84 - (cols - 1) * gap_x) // cols
     if cols == 1:
@@ -414,10 +434,20 @@ def build(spec, out_path):
             color = CATEGORY_COLORS[category]
             d.rounded_rectangle((42, y + 4, 342, y + 54),
                                 radius=23, fill=color)
-            center_text(d, category, y + 5, font(39, hand=True), WHITE, 42, 342)
+            center_text_in_box(d, category, (42, y + 4, 342, y + 54),
+                               font(39, hand=True), WHITE)
             d.line((360, y + 41, W - 46, y + 41), fill=LINE, width=3)
             y += heading_h
-        rows = [part[i:i + cols] for i in range(0, len(part), cols)]
+        # 5品+1品のような片寄りを避け、各段をなるべく均等にする。
+        row_count = math.ceil(len(part) / cols)
+        base_count, extra = divmod(len(part), row_count)
+        sizes = [base_count + (1 if i < extra else 0)
+                 for i in range(row_count)]
+        rows = []
+        cursor = 0
+        for size in sizes:
+            rows.append(part[cursor:cursor + size])
+            cursor += size
         for ri, row in enumerate(rows):
             width = len(row) * card_w + (len(row) - 1) * gap_x
             left = (W - width) // 2
