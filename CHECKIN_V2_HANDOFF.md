@@ -64,3 +64,26 @@ GPS 座標・精度は任意。取得できなくても来店可否を拒否し�
 - `www/sw.js`: PWAキャッシュ更新
 
 注意：アプリを閉じた状態での送信を保証するものではありません。アプリ起動・前面復帰・オンライン復帰で再送します。
+
+## v1.4.0 対応資料（作業用ブランチ）
+
+- Cloudflare Worker の全文: [`cloudflare/worker-1.4.0.js`](cloudflare/worker-1.4.0.js)
+- D1 に追加する SQL: [`cloudflare/migration-checkin-v2.sql`](cloudflare/migration-checkin-v2.sql)
+- 本番の Worker / D1 へ自動適用は行っていない
+
+### 必須の適用順
+
+1. 本番DBをバックアップし、`PRAGMA table_info(checkin_logs);`、`PRAGMA table_info(stamp_points);`、`SELECT name,sql FROM sqlite_master WHERE name IN ('checkin_logs','stamp_points');` で実スキーマを確認する
+2. そのスキーマが `checkin_logs(device_id,location_id,spot_name,checked_in_at)` / `stamp_points(device_id,current_points,megami_coupon_active)` を満たすことを確認してから、SQLを手動適用
+3. テスト環境で旧API・新APIのチェックイン／リトライ／同日重複／JST日付／既存ポイント維持を確認
+4. Worker全文を手動で置換・デプロイ（Cloudflare Dashboardでは `export default` を含むモジュールを貼り付ける）
+5. `feature/offline-checkin-20261121` をレビュー後にアプリ公開。先にアプリを公開しない
+
+### 重要な仕様と制約
+
+- 新APIはGPSを要求しないが、QRの有効性もまだ確認していない。現時点では非空QRなら受付対象となる
+- `request_id` は同じ受付の再送時に固定。受け付け済みの再送は追加付与しない
+- オフラインの `scanned_at` は端末申告であり、日時改ざんを完全には防げない
+- QRライブラリの同梱でカメラを通信なしで起動できるが、新APIへの通信が復旧するまでポイントは確定しない
+- 現行 `checkin_logs` の日時、`stamp_points` の初期値や既存制約が上記と異なる場合、提示コードをそのまま適用しない
+- 新旧の `/checkin` と `/checkin-v2` は同一の原子的付与処理を共有する。古いアプリでは従来どおりGPS位置判定が残る
