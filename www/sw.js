@@ -7,7 +7,7 @@
  * 既存のプッシュ通知処理は維持します。
  */
 
-const CACHE_NAME = 'kanatake-v2-cache-v5';
+const CACHE_NAME = 'kanatake-v2-cache-v6';
 const CACHE_PREFIX = 'kanatake-v2-cache-';
 
 function getBasePath() {
@@ -23,6 +23,7 @@ function isCoreAsset(pathname, base) {
     base + 'kanatake-theme.css',
     base + 'app.js',
     base + 'checkin-offline.js',
+    base + 'coupon-operations.js',
     base + 'vendor/html5-qrcode.min.js',
     base + 'manifest.json',
     base + 'sales-board.js',
@@ -54,6 +55,7 @@ self.addEventListener('install', event => {
     base + 'kanatake-theme.css?v=3',
     base + 'app.js',
     base + 'checkin-offline.js',
+    base + 'coupon-operations.js',
     base + 'vendor/html5-qrcode.min.js',
     base + 'manifest.json',
     base + 'sales-board.js',
