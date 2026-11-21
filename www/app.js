@@ -622,11 +622,17 @@ async function loadPoints() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ device_id: DEVICE_ID })
     });
+    if (!res.ok) throw new Error("points HTTP " + res.status);
     const data = await res.json();
-    updateStampUI(data.current_points || 0);
+    if (!Number.isSafeInteger(data.current_points) || data.current_points < 0) {
+      throw new Error("invalid points response");
+    }
+    updateStampUI(data.current_points);
     megamiCouponActive = !!(data.megami_coupon_active);
     updateMegamiCouponUI();
-  } catch (e) { console.warn("load points failed:", e); }
+    return true;
+  } catch (e) { console.warn("load points failed:", e);
+    return false; }
 }
 
 function updateStampUI(points) {
@@ -641,7 +647,10 @@ function updateMegamiCouponUI() {
 }
 
 document.getElementById("redeem-btn").addEventListener("click", async () => {
-  if (!confirm("20ポイントで「女神のほほえみ」と交換しますか？\nポイントは0にリセットされます。")) return;
+  const button = document.getElementById("redeem-btn");
+  if (button.disabled) return;
+  if (!confirm("20ポイントで「女神のほほえみ」と交換しますか？\n交換後も20ポイントを超えた分は残ります。")) return;
+  button.disabled = true;
   try {
     const res = await fetch(`${API_BASE}/redeem-points`, {
       method: "POST",
@@ -649,15 +658,29 @@ document.getElementById("redeem-btn").addEventListener("click", async () => {
       body: JSON.stringify({ device_id: DEVICE_ID, required_points: 20 })
     });
     const data = await res.json();
-    if (data.ok) {
-      alert("🎉 おめでとうございます！\nクーポンタブに「女神のほほえみ」クーポンが届きました！");
-      megamiCouponActive = true;
-      updateStampUI(0);
-      updateMegamiCouponUI();
-    } else {
-      alert("交換できませんでした: " + (data.error || ""));
+    if (!res.ok || !data.ok) {
+      alert("交換できませんでした: " + (data.error || "通信エラー"));
+      return;
     }
-  } catch (e) { alert("通信エラーが発生しました"); }
+    // サーバー側は「残高から20ポイントを減算」。0への固定表示は禁止。
+    megamiCouponActive = true;
+    updateMegamiCouponUI();
+    if (Number.isSafeInteger(data.current_points) && data.current_points >= 0) {
+      updateStampUI(data.current_points);
+    } else {
+      const current = await loadPoints();
+      if (!current) {
+        document.getElementById("stamp-current").textContent = "確認中";
+        button.style.display = "none";
+      }
+    }
+    alert("🎉 おめでとうございます！\nクーポンタブに「女神のほほえみ」クーポンが届きました！");
+  } catch (e) {
+    alert("通信エラーが発生しました。交換状況を再確認してください。");
+    await loadPoints();
+  } finally {
+    button.disabled = false;
+  }
 });
 
 document.getElementById("megami-use-btn").addEventListener("click", async () => {
