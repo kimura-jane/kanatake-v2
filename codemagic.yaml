@@ -42,6 +42,13 @@ workflows:
           chmod +x node_modules/.bin/cap
           npx cap sync ios
 
+      - name: Verify UIScene migration
+        script: |
+          set -eu
+          grep -q 'UIApplicationSceneManifest' "$CM_BUILD_DIR/ios/App/App/Info.plist"
+          grep -q 'SceneDelegate.swift' "$CM_BUILD_DIR/ios/App/App.xcodeproj/project.pbxproj"
+          grep -q 'capacitor-swift-pm.git", exact: "8.5.3"' "$CM_BUILD_DIR/ios/App/CapApp-SPM/Package.swift"
+
       - name: Set Push Notifications entitlement
         script: |
           cd "$CM_BUILD_DIR/ios/App"
