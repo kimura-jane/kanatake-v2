@@ -39,7 +39,7 @@
 
 	<!-- 位置情報（使用中のみ） -->
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>来店チェックイン時に参考情報として現在地を確認します。位置情報を許可しなくてもQR受付はできます。</string>
+	<string>来店チェックインのため、位置情報を取得していいですか？</string>
 
 	<!-- 位置情報（常時取得が必要な場合） -->
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
