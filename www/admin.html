@@ -308,7 +308,7 @@
         <h2>⭐ ポイント手動付与</h2>
         <p style="font-size:12px; color:#888; margin-bottom:8px;">機種変更時など、新端末にポイントを付与できます</p>
         <input type="text" id="add-points-device-id" placeholder="新端末のIDを入力">
-        <input type="number" id="add-points-amount" placeholder="付与ポイント数（1〜20）" min="1" max="20">
+        <input type="number" id="add-points-amount" placeholder="付与ポイント数（1〜100）" min="1" max="100">
         <button class="btn btn-primary" id="add-points-btn">付与する</button>
         <p id="add-points-msg"></p>
       </div>
@@ -731,7 +731,7 @@ document.getElementById("search-device-btn").addEventListener("click", async () 
     resultEl.innerHTML = `
       <table class="info-table">
         <tr><td>端末ID</td><td style="word-break:break-all;">${esc(data.device_id)}</td></tr>
-        <tr><td>現在ポイント</td><td><strong>${data.current_points}</strong> / 20</td></tr>
+        <tr><td>現在ポイント</td><td><strong>${data.current_points}</strong> ポイント（交換は20ポイントごと）</td></tr>
         <tr><td>累計交換回数</td><td>${data.total_redeemed} 回</td></tr>
         <tr><td>女神クーポン</td><td>${data.megami_coupon_active ? "✅ 保有中" : "なし"}</td></tr>
         <tr><td>初回クーポン</td><td>${data.welcome_coupon_used ? "✅ 使用済" : "未使用"}</td></tr>
@@ -748,10 +748,10 @@ document.getElementById("search-device-btn").addEventListener("click", async () 
 // ===== ポイント管理：ポイント手動付与 =====
 document.getElementById("add-points-btn").addEventListener("click", async () => {
   const deviceId = document.getElementById("add-points-device-id").value.trim();
-  const amount = parseInt(document.getElementById("add-points-amount").value, 10);
+  const amount = Number(document.getElementById("add-points-amount").value);
   const msgEl = document.getElementById("add-points-msg");
   if (!deviceId) { msgEl.innerHTML = '<span class="msg msg-error">端末IDを入力</span>'; return; }
-  if (!amount || amount < 1 || amount > 20) { msgEl.innerHTML = '<span class="msg msg-error">1〜20の数値を入力</span>'; return; }
+  if (!Number.isSafeInteger(amount) || amount < 1 || amount > 100) { msgEl.innerHTML = '<span class="msg msg-error">1〜100の整数を入力</span>'; return; }
   if (!confirm(`端末「${deviceId}」に ${amount} ポイント付与しますか？`)) return;
   msgEl.innerHTML = '<span class="msg msg-info">付与中…</span>';
   try {
