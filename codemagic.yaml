@@ -16,9 +16,21 @@ workflows:
         APP_STORE_APPLE_ID: "6760612778"
         XCODE_SCHEME: "App"
       node: v22.0.0
-      xcode: 26.6
+      xcode: 27.2
 
     scripts:
+      - name: Verify iOS 27 SDK
+        script: |
+          set -eu
+          xcodebuild -version
+          SDK_VERSION="$(xcrun --sdk iphoneos --show-sdk-version)"
+          echo "Selected iOS SDK: $SDK_VERSION"
+          SDK_MAJOR="${SDK_VERSION%%.*}"
+          if [ "$SDK_MAJOR" -lt 27 ]; then
+            echo "ERROR: iOS 27 SDK or newer is required."
+            exit 1
+          fi
+
       - name: Install npm dependencies
         script: |
           cd "$CM_BUILD_DIR"
