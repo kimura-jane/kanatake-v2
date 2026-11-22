@@ -7,7 +7,7 @@
  * 既存のプッシュ通知処理は維持します。
  */
 
-const CACHE_NAME = 'kanatake-v2-cache-v6';
+const CACHE_NAME = 'kanatake-v2-cache-v7';
 const CACHE_PREFIX = 'kanatake-v2-cache-';
 
 function getBasePath() {
